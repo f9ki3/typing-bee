@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typing Bee - Teacher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .game-controls {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        .game-code-display {
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        .game-code-display h2 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+        
+        .game-code {
+            font-size: 4em;
+            font-weight: bold;
+            letter-spacing: 8px;
+            font-family: 'Courier New', monospace;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .url-display {
+            margin-top: 15px;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .sentence-display {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .sentence-display h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .sentence-text {
+            font-size: 1.3em;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .players-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .players-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .player-count {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.2em;
+            color: #666;
+        }
+        
+        .player-list {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .player-card {
+            background: linear-gradient(to right, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: auto 1fr auto auto;
+            gap: 20px;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-left: 5px solid #dee2e6;
+        }
+        
+        .player-card.completed {
+            border-left-color: #28a745;
+            background: linear-gradient(to right, #d4edda 0%, #c3e6cb 100%);
+        }
+        
+        .player-rank {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            min-width: 40px;
+        }
+        
+        .player-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .player-stats {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 2px;
+        }
+        
+        .progress-bar-container {
+            width: 200px;
+            height: 10px;
+            background: #dee2e6;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            border-radius: 5px;
+        }
+        
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        
+        .status-waiting {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-typing {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .status-finished {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .no-players {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 1.1em;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .player-card {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .game-code {
+                font-size: 2.5em;
+                letter-spacing: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 Typing Bee</h1>
+            <p class="subtitle">Teacher Control Panel</p>
+        </div>
+        
+        <div id="setupView" class="game-controls">
+            <button onclick="createGame()" style="display: block; margin: 0 auto; font-size: 1.3em; padding: 20px 60px;">
+                Create New Game
+            </button>
+        </div>
+        
+        <div id="gameView" class="hidden">
+            <div class="game-controls">
+                <div class="game-code-display">
+                    <h2>Students Join With Code:</h2>
+                    <div class="game-code" id="gameCode">------</div>
+                    <div class="url-display" id="urlDisplay"></div>
+                </div>
+                
+                <div class="sentence-display">
+                    <h3>Sentence to Type:</h3>
+                    <div class="sentence-text" id="sentenceDisplay"></div>
+                </div>
+                
+                <div style="text-align: center;">
+                    <button id="startButton" onclick="startGame()" style="font-size: 1.3em; padding: 20px 60px;">
+                        Start Race
+                    </button>
+                    <button id="newRoundButton" onclick="newRound()" style="margin-left: 20px; background: #17a2b8; display: none;">
+                        New Round (Same Players)
+                    </button>
+                    <button onclick="resetGame()" style="margin-left: 20px; background: #dc3545;">
+                        Reset Everything
+                    </button>
+                </div>
+            </div>
+            
+            <div class="players-section">
+                <h2>Players</h2>
+                <div class="player-count">
+                    <span id="playerCount">0</span> players joined
+                </div>
+                <div id="playerList" class="player-list">
+                    <div class="no-players">Waiting for students to join...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let ws;
+        let currentGameCode = null;
+        let gameStarted = false;
+        let players = {};
+        
+        function connectWebSocket() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsHost = window.location.hostname || 'localhost';
+            const wsUrl = `${wsProtocol}//${wsHost}:8001`;
+            console.log('Connecting to WebSocket:', wsUrl);
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('Connected to server');
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleServerMessage(data);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+            
+            ws.onclose = () => {
+                console.log('Disconnected from server');
+                setTimeout(connectWebSocket, 2000);
+            };
+        }
+        
+        function handleServerMessage(data) {
+            if (data.type === 'game_created') {
+                currentGameCode = data.game_code;
+                document.getElementById('gameCode').textContent = data.game_code;
+                document.getElementById('sentenceDisplay').textContent = data.sentence;
+                document.getElementById('urlDisplay').textContent = 
+                    `Or visit: ${window.location.origin}/student.html`;
+                
+                document.getElementById('setupView').classList.add('hidden');
+                document.getElementById('gameView').classList.remove('hidden');
+            } else if (data.type === 'game_state') {
+                updateGameState(data.game_state);
+            }
+        }
+        
+        function createGame() {
+            ws.send(JSON.stringify({
+                action: 'create_game'
+            }));
+        }
+        
+        function startGame() {
+            if (Object.keys(players).length === 0) {
+                alert('Need at least one player to start!');
+                return;
+            }
+            
+            ws.send(JSON.stringify({
+                action: 'start_game',
+                game_code: currentGameCode
+            }));
+            
+            gameStarted = true;
+            document.getElementById('startButton').disabled = true;
+            document.getElementById('startButton').textContent = 'Race in Progress...';
+        }
+        
+        function resetGame() {
+            // Force a hard reload to clear all state
+            window.location.href = window.location.href;
+        }
+        
+        function newRound() {
+            // Create a new game without full page reload
+            gameStarted = false;
+            players = {};
+            document.getElementById('startButton').disabled = false;
+            document.getElementById('startButton').textContent = 'Start Race';
+            createGame();
+        }
+        
+        function checkGameComplete(gameState) {
+            // Check if all players have finished
+            const playerList = Object.values(gameState.players);
+            if (playerList.length > 0 && gameState.started) {
+                const allFinished = playerList.every(p => p.completed);
+                if (allFinished) {
+                    document.getElementById('startButton').textContent = '🏁 Race Complete!';
+                    document.getElementById('startButton').style.background = '#28a745';
+                    document.getElementById('newRoundButton').style.display = 'inline-block';
+                }
+            }
+        }
+        
+        function updateGameState(gameState) {
+            players = gameState.players;
+            
+            // Check if game is complete
+            checkGameComplete(gameState);
+            
+            // Update player count
+            const playerCount = Object.keys(players).length;
+            document.getElementById('playerCount').textContent = playerCount;
+            
+            // Sort players by completion and WPM
+            const sortedPlayers = Object.entries(players).sort((a, b) => {
+                if (a[1].completed && !b[1].completed) return -1;
+                if (!a[1].completed && b[1].completed) return 1;
+                if (a[1].completed && b[1].completed) return b[1].wpm - a[1].wpm;
+                return b[1].progress - a[1].progress;
+            });
+            
+            // Render player list
+            const playerListDiv = document.getElementById('playerList');
+            
+            if (playerCount === 0) {
+                playerListDiv.innerHTML = '<div class="no-players">Waiting for students to join...</div>';
+                return;
+            }
+            
+            playerListDiv.innerHTML = sortedPlayers.map(([playerId, player], index) => {
+                const statusClass = player.completed ? 'status-finished' : 
+                                  gameState.started ? 'status-typing' : 'status-waiting';
+                const statusText = player.completed ? 'Finished!' : 
+                                 gameState.started ? 'Typing...' : 'Waiting';
+                
+                return `
+                    <div class="player-card ${player.completed ? 'completed' : ''}">
+                        <div class="player-rank">${player.completed ? '🏆' : index + 1}</div>
+                        <div class="player-name">${player.name}</div>
+                        <div class="player-stats">
+                            <div class="stat">
+                                <div class="stat-value">${Math.round(player.wpm)}</div>
+                                <div class="stat-label">WPM</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${Math.round(player.accuracy)}%</div>
+                                <div class="stat-label">Accuracy</div>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" style="width: ${player.progress}%"></div>
+                            </div>
+                        </div>
+                        <div class="status-badge ${statusClass}">${statusText}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Connect on page load
+        connectWebSocket();
+    </script>
+</body>
+</html>
