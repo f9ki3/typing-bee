@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Spelling Bee – Student Kiosk</title>
 <!-- Tailwind CSS via CDN -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -11,7 +11,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
 <script>
   tailwind.config = {
     theme: {
@@ -46,84 +45,72 @@
     }
   }
 </script>
-
 <style>
-  /* School Palette Root Styling */
   :root {
     --bg-main: #fffcf8;
     --primary-orange: #fa8424;
     --primary-blue: #1c1b9d;
   }
-
   body {
     background-color: var(--bg-main);
     color: #1e293b;
     font-family: 'Plus Jakarta Sans', sans-serif;
     min-height: 100vh;
-    background-image: 
-      radial-gradient(#fa8424 0.75px, transparent 0.75px), 
+    min-height: 100dvh;
+    background-image:
+      radial-gradient(#fa8424 0.75px, transparent 0.75px),
       radial-gradient(#1c1b9d 0.75px, #fffcf8 0.75px);
-    background-size: 30px 30px;
-    background-position: 0 0, 15px 15px;
+    background-size: 24px 24px;
+    background-position: 0 0, 12px 12px;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
-
-  /* School Cards & Panels */
+  .safe-padding {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
   .school-card {
     background: #ffffff;
     border: 2px solid #fcd2b2;
     border-radius: 1.25rem;
     box-shadow: 0 10px 25px -5px rgba(28, 27, 157, 0.08), 0 8px 10px -6px rgba(250, 132, 36, 0.08);
   }
-
-  /* Cutout Inner Panels */
   .recessed-orange {
     background: #fef3ea;
     border: 1.5px solid #fcd2b2;
     border-radius: 0.85rem;
   }
-
   .recessed-blue {
     background: #f0f0fb;
     border: 1.5px solid #b8b7e8;
     border-radius: 0.85rem;
   }
-
-  /* Bulky Digital LED Timer Container */
   .timer-bezel {
     background: #131273;
     border: 3px solid #b8b7e8;
     box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.4);
     position: relative;
   }
-
-  /* Dynamic Timer Display Text */
   .timer-digit {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 800;
-    line-height: 0.95;
+    line-height: 1;
     letter-spacing: -0.02em;
     text-shadow: 0 0 12px currentColor;
     transition: color 0.3s ease, text-shadow 0.3s ease;
   }
-
-  .timer-normal {
-    color: #38bdf8;
-  }
-  .timer-warning {
-    color: #f59e0b;
-  }
+  .timer-normal { color: #38bdf8; }
+  .timer-warning { color: #f59e0b; }
   .timer-critical {
     color: #f43f5e;
     animation: pulse-critical 0.8s infinite alternate;
   }
-
   @keyframes pulse-critical {
     from { opacity: 1; transform: scale(1); }
     to { opacity: 0.85; transform: scale(1.02); }
   }
-
-  /* Tactile Interactive Buttons */
   .btn-school-orange {
     background-color: #fa8424;
     color: #ffffff;
@@ -146,7 +133,6 @@
     opacity: 0.6;
     cursor: not-allowed;
   }
-
   .btn-school-blue {
     background-color: #1c1b9d;
     color: #ffffff;
@@ -163,8 +149,6 @@
     transform: translateY(3px);
     border-bottom-width: 1px;
   }
-
-  /* Form Input Styling */
   .kiosk-input {
     background: #ffffff;
     border: 2px solid #fcd2b2;
@@ -176,11 +160,7 @@
     outline: none;
     box-shadow: 0 0 0 4px rgba(250, 132, 36, 0.15);
   }
-
-  /* Custom Scrollbar */
-  .custom-scroll::-webkit-scrollbar {
-    width: 6px;
-  }
+  .custom-scroll::-webkit-scrollbar { width: 5px; }
   .custom-scroll::-webkit-scrollbar-track {
     background: #fef3ea;
     border-radius: 8px;
@@ -189,16 +169,13 @@
     background: #fcd2b2;
     border-radius: 8px;
   }
-  .custom-scroll::-webkit-scrollbar-thumb:hover {
-    background: #fa8424;
-  }
-
-  /* Connection Status Dot */
+  .custom-scroll::-webkit-scrollbar-thumb:hover { background: #fa8424; }
   .status-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     display: inline-block;
+    flex-shrink: 0;
   }
   .status-dot-active {
     background-color: #34d399;
@@ -208,216 +185,283 @@
     background-color: #f87171;
     box-shadow: 0 0 8px #f87171;
   }
+  .avatar-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 1rem;
+    border: 3px solid #fcd2b2;
+    background: #fef3ea;
+    object-fit: cover;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .avatar-preview:hover {
+    border-color: #fa8424;
+    box-shadow: 0 0 0 4px rgba(250, 132, 36, 0.15);
+  }
+  .style-chip {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.3rem 0.5rem;
+    border-radius: 9999px;
+    border: 1.5px solid #b8b7e8;
+    background: #f0f0fb;
+    color: #1c1b9d;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .style-chip:hover {
+    border-color: #fa8424;
+    background: #fef3ea;
+  }
+  .style-chip.active {
+    background: #fa8424;
+    border-color: #be5d0b;
+    color: #fff;
+  }
+  .player-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 0.5rem;
+    border: 1.5px solid #b8b7e8;
+    object-fit: cover;
+    background: #f0f0fb;
+    flex-shrink: 0;
+  }
+  .player-avatar-lg {
+    width: 32px;
+    height: 32px;
+    border-radius: 0.5rem;
+  }
 </style>
 </head>
-<body class="p-2 sm:p-4 flex flex-col items-center justify-center min-h-screen">
+<body class="safe-padding flex flex-col items-center justify-center min-h-screen min-h-[100dvh] w-full">
 
-  <!-- TOP BRANDING / HEADER BAR (30% Deep Blue Dominant Header) -->
-  <header class="w-full max-w-xl mb-3 flex items-center justify-between gap-3 px-4 py-3 bg-school-blue text-white rounded-2xl shadow-school-md border-b-4 border-school-blue-dark">
-    <div class="flex items-center gap-3">
-      <!-- School Logo / Fallback Badge -->
-      <div class="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-md shrink-0 border border-school-blue-border">
-        <img src="mes_logo.png" alt="MES Logo" id="mes-logo" class="h-8 w-8 object-contain" onerror="this.style.display='none'; document.getElementById('logo-fallback').classList.remove('hidden');" />
-        <div id="logo-fallback" class="hidden text-school-orange text-xl font-bold flex items-center justify-center">
+  <!-- TOP BRANDING / HEADER BAR -->
+  <header class="w-full max-w-xl mb-3 flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-school-blue text-white rounded-2xl shadow-school-md border-b-4 border-school-blue-dark">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-md shrink-0 border border-school-blue-border">
+        <img src="mes_logo.png" alt="MES Logo" id="mes-logo" class="h-6 w-6 sm:h-8 sm:w-8 object-contain" onerror="this.style.display='none'; document.getElementById('logo-fallback').classList.remove('hidden');" />
+        <div id="logo-fallback" class="hidden text-school-orange text-lg sm:text-xl font-bold flex items-center justify-center">
           <i class="bi bi-award-fill"></i>
         </div>
       </div>
-      <div>
-        <h1 class="text-base sm:text-xl font-bold font-heading uppercase tracking-wide text-white leading-none mt-1 flex items-center gap-2">
-          MaterA Matibay<span class="text-amber-300 font-normal text-xs sm:text-sm">| SPELLING BEE KIOSK</span>
+      <div class="min-w-0">
+        <h1 class="text-xs sm:text-lg font-bold font-heading uppercase tracking-wide text-white leading-tight truncate flex flex-wrap items-center gap-x-1.5">
+          <span>MaterA Matibay</span>
+          <span class="text-amber-300 font-normal text-[10px] sm:text-xs">| SPELLING BEE</span>
         </h1>
       </div>
     </div>
-
-    <!-- Connection Status Pill -->
-    <div class="bg-school-blue-dark/80 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-school-blue-border/30 shrink-0">
+    <div class="bg-school-blue-dark/80 px-2.5 py-1 rounded-xl flex items-center gap-1.5 border border-school-blue-border/30 shrink-0">
       <span id="conn-dot" class="status-dot status-dot-inactive"></span>
-      <p class="text-[11px] font-mono font-bold uppercase tracking-wide text-rose-300" id="conn-status">CONNECTING...</p>
+      <p class="text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wide text-rose-300 whitespace-nowrap" id="conn-status">CONNECTING...</p>
     </div>
   </header>
 
   <!-- MAIN KIOSK CONTAINER -->
-  <main class="w-full max-w-xl">
+  <main class="w-full max-w-xl flex-1 flex flex-col justify-center">
 
     <!-- 1. JOIN SCREEN -->
-    <div id="join" class="school-card p-5 sm:p-6 space-y-5 border-t-4 border-t-school-orange">
-      <div class="bg-school-orange text-white -mx-5 -mt-5 sm:-mx-6 sm:-mt-6 p-4 rounded-t-xl flex justify-between items-center border-b-2 border-school-blue-dark">
-        <h2 class="text-base font-bold font-heading tracking-wider flex items-center gap-2">
-          <i class="bi bi-person-workspace text-school-blue"></i>
+    <div id="join" class="school-card p-4 sm:p-6 space-y-4 sm:space-y-5 border-t-4 border-t-school-orange">
+      <div class="bg-school-orange text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-3.5 sm:p-4 rounded-t-xl flex justify-between items-center border-b-2 border-school-blue-dark">
+        <h2 class="text-xs sm:text-base font-bold font-heading tracking-wider flex items-center gap-2">
+          <i class="bi bi-person-workspace text-school-blue text-sm sm:text-base"></i>
           STUDENT TERMINAL ACCESS
         </h2>
-        <span class="text-[10px] font-mono font-bold uppercase bg-white/10 px-2.5 py-1 rounded-md text-school-blue-border">STATUS: READY</span>
+        <span class="text-[9px] sm:text-[10px] font-mono font-bold uppercase bg-white/10 px-2 py-0.5 sm:py-1 rounded-md text-school-blue-border shrink-0">STATUS: READY</span>
       </div>
 
-      <div class="space-y-4 pt-1">
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-school-blue font-sans mb-1">Student Name</label>
-          <input id="name" placeholder="ENTER YOUR FULL NAME" maxlength="20" autocomplete="off"
-                 class="kiosk-input w-full px-4 py-3 rounded-xl text-base font-bold uppercase font-sans placeholder-slate-400">
+      <div class="space-y-3 sm:space-y-4 pt-1">
+        <!-- Avatar Picker -->
+        <div class="recessed-blue p-3 sm:p-4 rounded-xl">
+          <label class="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-school-blue font-sans mb-2 sm:mb-3 text-center">
+            Choose Your Avatar
+          </label>
+          <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+            <div class="flex flex-col items-center gap-1.5 shrink-0">
+              <img id="avatar-preview" class="avatar-preview" alt="Your avatar"
+                   src="https://api.dicebear.com/9.x/avataaars/svg?seed=Student&size=128" />
+              <button type="button" id="btn-random-seed"
+                      class="text-[10px] font-bold uppercase tracking-wide text-school-orange hover:text-school-orange-hover flex items-center gap-1">
+                <i class="bi bi-shuffle"></i> Randomize
+              </button>
+            </div>
+            <div class="flex-1 w-full">
+              <p class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Style</p>
+              <div id="style-chips" class="flex flex-wrap gap-1 justify-center sm:justify-start"></div>
+            </div>
+          </div>
         </div>
 
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-school-blue font-sans mb-1">Access Game Code</label>
+          <label class="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-school-blue font-sans mb-1">Student Name</label>
+          <input id="name" placeholder="ENTER YOUR FULL NAME" maxlength="20" autocomplete="off"
+                 class="kiosk-input w-full px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-bold uppercase font-sans placeholder-slate-400">
+        </div>
+        <div>
+          <label class="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-school-blue font-sans mb-1">Access Game Code</label>
           <input id="code" placeholder="ABC123" maxlength="6" autocomplete="off"
                  style="text-transform:uppercase; letter-spacing:0.15em;"
-                 class="kiosk-input w-full px-4 py-3 rounded-xl text-2xl font-mono font-extrabold tracking-widest text-school-blue text-center placeholder-slate-300 uppercase">
+                 class="kiosk-input w-full px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl text-xl sm:text-2xl font-mono font-extrabold tracking-widest text-school-blue text-center placeholder-slate-300 uppercase">
         </div>
-
-        <button id="btn-join" class="btn-school-orange w-full py-3.5 text-white font-extrabold text-lg tracking-wider uppercase rounded-xl flex items-center justify-center gap-2 shadow-school-md">
-          <i class="bi bi-box-arrow-in-right text-xl"></i>
+        <button id="btn-join" class="btn-school-orange w-full py-3 sm:py-3.5 text-white font-extrabold text-base sm:text-lg tracking-wider uppercase rounded-xl flex items-center justify-center gap-2 shadow-school-md min-h-[48px]">
+          <i class="bi bi-box-arrow-in-right text-lg sm:text-xl"></i>
           <span>CONNECT TO LOBBY</span>
         </button>
-
         <p class="msg text-center text-xs font-bold text-rose-500 font-sans min-h-[1.25rem] my-0" id="join-msg"></p>
       </div>
-
-      <div class="bg-school-orange-light border border-school-orange-border p-3 rounded-xl text-center">
-        <p class="text-[11px] text-slate-600 font-medium">Please enter your assigned student name and room code from your teacher dashboard.</p>
+      <div class="bg-school-orange-light border border-school-orange-border p-2.5 sm:p-3 rounded-xl text-center">
+        <p class="text-[10px] sm:text-[11px] text-slate-600 font-medium">Please enter your assigned student name and room code from your teacher dashboard.</p>
       </div>
     </div>
 
     <!-- 2. LOBBY SCREEN -->
-    <div id="lobby" class="school-card p-5 sm:p-6 space-y-5 hidden border-t-4 border-t-school-orange">
-      <div class="bg-school-orange text-white -mx-5 -mt-5 sm:-mx-6 sm:-mt-6 p-4 rounded-t-xl flex justify-between items-center border-b-2 border-school-blue-dark">
-        <h2 class="text-base font-bold font-heading tracking-wider flex items-center gap-2">
-          <i class="bi bi-broadcast text-emerald-400 animate-pulse"></i>
+    <div id="lobby" class="school-card p-4 sm:p-6 space-y-4 sm:space-y-5 hidden border-t-4 border-t-school-orange">
+      <div class="bg-school-orange text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-3.5 sm:p-4 rounded-t-xl flex justify-between items-center border-b-2 border-school-blue-dark">
+        <h2 class="text-xs sm:text-base font-bold font-heading tracking-wider flex items-center gap-2">
+          <i class="bi bi-broadcast text-emerald-400 animate-pulse text-sm sm:text-base"></i>
           LOBBY HOLDING BAY
         </h2>
-        <span class="text-[10px] font-mono font-bold text-emerald-300 bg-emerald-900/40 px-2.5 py-1 rounded-md border border-emerald-500/30">CONNECTED</span>
+        <span class="text-[9px] sm:text-[10px] font-mono font-bold text-emerald-300 bg-emerald-900/40 px-2 py-0.5 sm:py-1 rounded-md border border-emerald-500/30 shrink-0">CONNECTED</span>
       </div>
 
-      <div class="grid grid-cols-2 gap-3 recessed-blue p-3 rounded-xl border border-school-blue-border">
-        <div class="text-center border-r border-school-blue-border/60 pr-2">
-          <span class="text-[10px] font-sans font-bold text-slate-500 uppercase block">Student Terminal</span>
-          <strong id="my-name" class="text-sm sm:text-base font-bold text-school-blue truncate block">---</strong>
+      <div class="grid grid-cols-2 gap-2 sm:gap-3 recessed-blue p-2.5 sm:p-3 rounded-xl border border-school-blue-border">
+        <div class="text-center border-r border-school-blue-border/60 pr-2 flex flex-col items-center gap-1 min-w-0">
+          <span class="text-[9px] sm:text-[10px] font-sans font-bold text-slate-500 uppercase block truncate">Student Terminal</span>
+          <div class="flex items-center gap-1.5 justify-center min-w-0">
+            <img id="my-avatar" class="player-avatar player-avatar-lg" alt="" src="" />
+            <strong id="my-name" class="text-xs sm:text-base font-bold text-school-blue truncate">---</strong>
+          </div>
         </div>
-        <div class="text-center pl-2">
-          <span class="text-[10px] font-sans font-bold text-slate-500 uppercase block">Room Code</span>
-          <strong id="lobby-code" class="text-sm sm:text-base font-mono font-black text-school-orange block">------</strong>
+        <div class="text-center pl-2 min-w-0">
+          <span class="text-[9px] sm:text-[10px] font-sans font-bold text-slate-500 uppercase block truncate">Room Code</span>
+          <strong id="lobby-code" class="text-xs sm:text-base font-mono font-black text-school-orange block truncate">------</strong>
         </div>
       </div>
 
       <div>
-        <h3 class="text-xs font-bold uppercase tracking-wider text-school-blue font-heading mb-2 flex items-center justify-between">
+        <h3 class="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-school-blue font-heading mb-2 flex items-center justify-between">
           <span>Active Contestants</span>
-          <span class="text-[10px] font-mono text-slate-500 font-normal">LIVE FEED</span>
+          <span class="text-[9px] sm:text-[10px] font-mono text-slate-500 font-normal">LIVE FEED</span>
         </h3>
-        <div id="player-list" class="custom-scroll max-h-48 overflow-y-auto space-y-2 pr-1"></div>
+        <div id="player-list" class="custom-scroll max-h-40 sm:max-h-48 overflow-y-auto space-y-2 pr-1"></div>
       </div>
-
-      <div class="recessed-orange p-3 rounded-xl text-center">
-        <p class="msg text-xs font-bold font-sans text-school-orange animate-pulse uppercase tracking-wider my-0" id="lobby-msg">
-          <i class="bi bi-hourglass-split"></i> Waiting for instructor to start match...
+      <div class="recessed-orange p-2.5 sm:p-3 rounded-xl text-center">
+        <p class="msg text-[11px] sm:text-xs font-bold font-sans text-school-orange animate-pulse uppercase tracking-wider my-0 flex items-center justify-center gap-1.5" id="lobby-msg">
+          <i class="bi bi-hourglass-split"></i>
+          <span>Waiting for instructor to start match...</span>
         </p>
       </div>
     </div>
 
-    <!-- 3. PLAYING SCREEN (WITH BULKY DIGITAL TIMER) -->
-    <div id="playing" class="school-card p-4 sm:p-6 space-y-4 hidden border-t-4 border-t-school-orange">
-      <!-- Round Control Banner -->
-      <div class="flex justify-between items-center recessed-orange px-4 py-2 rounded-xl">
-        <span class="text-xs font-bold font-heading tracking-widest text-school-orange uppercase flex items-center gap-1.5">
+    <!-- 3. PLAYING SCREEN -->
+    <div id="playing" class="school-card p-3.5 sm:p-6 space-y-3.5 sm:space-y-4 hidden border-t-4 border-t-school-orange">
+      <div class="flex justify-between items-center recessed-orange px-3 sm:px-4 py-2 rounded-xl">
+        <span class="text-[11px] sm:text-xs font-bold font-heading tracking-widest text-school-orange uppercase flex items-center gap-1.5">
           <i class="bi bi-controller"></i> SPELLING ROUND
         </span>
-        <div class="text-xs font-mono font-bold text-school-blue">
-          ROUND <span id="round-num" class="text-school-orange text-sm font-black">--</span>
+        <div class="text-[11px] sm:text-xs font-mono font-bold text-school-blue">
+          ROUND <span id="round-num" class="text-school-orange text-xs sm:text-sm font-black">--</span>
         </div>
       </div>
 
-      <!-- BULKY DIGITAL TIMER DISPLAY -->
-      <div class="timer-bezel rounded-2xl p-3 sm:p-4 text-center overflow-hidden">
-        <span class="text-[10px] font-mono uppercase tracking-widest text-slate-300 block mb-1">REMAINING ALLOCATED TIME</span>
-        
-        <!-- Bulky Timer LED Text -->
-        <div class="timer timer-digit text-6xl sm:text-7xl md:text-8xl py-1 sm:py-2 my-1 timer-normal" id="time-left">
+      <div class="timer-bezel rounded-2xl p-2.5 sm:p-4 text-center overflow-hidden">
+        <span class="text-[9px] sm:text-[10px] font-mono uppercase tracking-widest text-slate-300 block mb-0.5">REMAINING ALLOCATED TIME</span>
+        <div class="timer timer-digit text-4xl sm:text-7xl md:text-8xl py-1 sm:py-2 my-0.5 sm:my-1 timer-normal" id="time-left">
           --
         </div>
       </div>
 
-      <!-- Hint Box -->
-      <div class="recessed-blue p-3.5 sm:p-4 rounded-xl space-y-1.5">
-        <div class="text-[10px] font-bold font-heading uppercase tracking-widest text-school-blue flex items-center gap-1">
+      <div class="recessed-blue p-3 sm:p-4 rounded-xl space-y-1">
+        <div class="text-[9px] sm:text-[10px] font-bold font-heading uppercase tracking-widest text-school-blue flex items-center gap-1">
           <i class="bi bi-lightbulb-fill text-school-orange"></i> CLUE TRANSMISSION
         </div>
         <div class="hint text-xs sm:text-sm font-medium leading-relaxed whitespace-pre-wrap font-sans text-slate-700" id="hint"></div>
       </div>
 
-      <!-- Input and Answer Box -->
-      <div id="answer-box" class="space-y-3 pt-1">
+      <div id="answer-box" class="space-y-2.5 sm:space-y-3 pt-0.5">
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-school-blue font-sans mb-1">Your Spelling Answer</label>
-          <input id="answer" placeholder="Type word here..." autocomplete="off" autocapitalize="off"
-                 class="kiosk-input w-full px-4 py-3 rounded-xl text-xl sm:text-2xl font-bold font-mono tracking-wide text-school-blue">
+          <label class="block text-[10px] sm:text-xs font-bold uppercase tracking-wider text-school-blue font-sans mb-1">Your Spelling Answer</label>
+          <input id="answer" placeholder="Type word here..." autocomplete="off" autocapitalize="off" spellcheck="false"
+                 class="kiosk-input w-full px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl text-lg sm:text-2xl font-bold font-mono tracking-wide text-school-blue">
         </div>
-        <button id="btn-answer" class="btn-school-orange w-full py-3.5 text-white font-extrabold text-base sm:text-lg tracking-wider uppercase rounded-xl shadow-school-md flex items-center justify-center gap-2">
-          <i class="bi bi-send-fill text-lg"></i>
+        <button id="btn-answer" class="btn-school-orange w-full py-3 sm:py-3.5 text-white font-extrabold text-sm sm:text-lg tracking-wider uppercase rounded-xl shadow-school-md flex items-center justify-center gap-2 min-h-[48px]">
+          <i class="bi bi-send-fill text-base sm:text-lg"></i>
           <span>SUBMIT ANSWER</span>
         </button>
       </div>
 
-      <!-- Answered Confirmation Message -->
-      <div id="answered-msg" class="msg hidden bg-emerald-50 border-2 border-emerald-300 text-emerald-800 p-4 rounded-xl text-center font-bold font-sans text-xs sm:text-sm shadow-sm">
+      <div id="answered-msg" class="msg hidden bg-emerald-50 border-2 border-emerald-300 text-emerald-800 p-3.5 sm:p-4 rounded-xl text-center font-bold font-sans text-xs sm:text-sm shadow-sm">
         <i class="bi bi-check-circle-fill text-emerald-600 text-base mr-1"></i>
         <span>ANSWER LOCKED & TRANSMITTED – STAND BY FOR RESULTS</span>
       </div>
     </div>
 
     <!-- 4. ROUND RESULT SCREEN -->
-    <div id="result" class="school-card p-5 sm:p-6 space-y-4 hidden border-t-4 border-t-emerald-500">
-      <div class="bg-school-blue text-white -mx-5 -mt-5 sm:-mx-6 sm:-mt-6 p-4 rounded-t-xl flex justify-between items-center border-b-2 border-school-blue-dark">
-        <h2 class="text-base font-bold font-heading tracking-wider flex items-center gap-2">
-          <i class="bi bi-clipboard-data text-amber-300"></i>
+    <div id="result" class="school-card p-4 sm:p-6 space-y-3.5 sm:space-y-4 hidden border-t-4 border-t-emerald-500">
+      <div class="bg-school-blue text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-3.5 sm:p-4 rounded-t-xl flex justify-between items-center border-b-2 border-school-blue-dark">
+        <h2 class="text-xs sm:text-base font-bold font-heading tracking-wider flex items-center gap-2">
+          <i class="bi bi-clipboard-data text-amber-300 text-sm sm:text-base"></i>
           ROUND DEBRIEF
         </h2>
-        <span class="text-[10px] font-mono font-bold text-cyan-300 bg-cyan-900/40 px-2.5 py-1 rounded-md border border-cyan-500/30">EVALUATION</span>
+        <span class="text-[9px] sm:text-[10px] font-mono font-bold text-cyan-300 bg-cyan-900/40 px-2 py-0.5 sm:py-1 rounded-md border border-cyan-500/30 shrink-0">EVALUATION</span>
       </div>
-
-      <div class="recessed-orange p-4 rounded-xl text-center space-y-0.5">
-        <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500 block">CORRECT SPELLING</span>
-        <strong id="correct-word" class="text-2xl sm:text-3xl font-black text-school-blue font-mono tracking-widest uppercase block">---</strong>
+      <div class="recessed-orange p-3 sm:p-4 rounded-xl text-center space-y-0.5">
+        <span class="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-500 block">CORRECT SPELLING</span>
+        <strong id="correct-word" class="text-xl sm:text-3xl font-black text-school-blue font-mono tracking-widest uppercase block break-all">---</strong>
       </div>
-
       <div>
-        <h3 class="text-xs font-bold uppercase tracking-wider text-school-blue font-heading mb-2">Participant Performance</h3>
-        <div id="result-list" class="custom-scroll max-h-52 overflow-y-auto space-y-2 pr-1"></div>
+        <h3 class="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-school-blue font-heading mb-2">Participant Performance</h3>
+        <div id="result-list" class="custom-scroll max-h-40 sm:max-h-52 overflow-y-auto space-y-2 pr-1"></div>
       </div>
-
       <div class="recessed-blue p-2.5 rounded-xl text-center">
-        <p class="msg text-xs font-bold font-sans text-school-blue uppercase my-0">
-          <i class="bi bi-arrow-repeat text-school-orange animate-spin inline-block mr-1"></i>
-          NEXT ROUND INITIALIZING SHORTLY…
+        <p class="msg text-[11px] sm:text-xs font-bold font-sans text-school-blue uppercase my-0 flex items-center justify-center gap-1.5">
+          <i class="bi bi-arrow-repeat text-school-orange animate-spin inline-block"></i>
+          <span>NEXT ROUND INITIALIZING SHORTLY…</span>
         </p>
       </div>
     </div>
 
     <!-- 5. GAME OVER / FINAL RANKING SCREEN -->
-    <div id="over" class="school-card p-5 sm:p-6 space-y-5 hidden border-t-4 border-t-school-orange">
-      <div class="bg-school-blue text-white -mx-5 -mt-5 sm:-mx-6 sm:-mt-6 p-4 rounded-t-xl text-center border-b-2 border-school-blue-dark">
-        <h2 class="text-lg font-black font-heading tracking-widest text-amber-300 uppercase flex items-center justify-center gap-2">
+    <div id="over" class="school-card p-4 sm:p-6 space-y-4 sm:space-y-5 hidden border-t-4 border-t-school-orange">
+      <div class="bg-school-blue text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-3.5 sm:p-4 rounded-t-xl text-center border-b-2 border-school-blue-dark">
+        <h2 class="text-base sm:text-lg font-black font-heading tracking-widest text-amber-300 uppercase flex items-center justify-center gap-2">
           <i class="bi bi-trophy-fill text-amber-400"></i>
           FINAL TOURNAMENT RANKING
         </h2>
       </div>
-
-      <div class="recessed-orange p-3.5 rounded-xl">
-        <ol id="ranking" class="custom-scroll max-h-64 overflow-y-auto space-y-2 pr-1 text-sm font-bold font-sans"></ol>
+      <div class="recessed-orange p-2.5 sm:p-3.5 rounded-xl">
+        <ol id="ranking" class="custom-scroll max-h-48 sm:max-h-64 overflow-y-auto space-y-2 pr-1 text-xs sm:text-sm font-bold font-sans"></ol>
       </div>
-
-      <div class="text-center space-y-1">
-        <p class="msg text-sm font-extrabold font-heading text-school-blue uppercase tracking-wider">COMPETITION CONCLUDED</p>
-        <p class="text-xs text-slate-500 font-sans">Thank you for participating!</p>
+      <div class="text-center space-y-0.5">
+        <p class="msg text-xs sm:text-sm font-extrabold font-heading text-school-blue uppercase tracking-wider">COMPETITION CONCLUDED</p>
+        <p class="text-[11px] sm:text-xs text-slate-500 font-sans">Thank you for participating!</p>
       </div>
     </div>
-
   </main>
 
 <script>
 const WS_URL = `ws://${location.hostname}:8001`;
+const DICEBEAR_STYLES = [
+  "avataaars", "bottts", "lorelei", "notionists",
+  "adventurer", "big-smile", "fun-emoji", "thumbs",
+  "identicon", "shapes"
+];
+
 let ws = null;
 let gameCode = null;
 let playerId = null;
 let myName = null;
+let myAvatarUrl = null;
 let reconnectTimer = null;
+let currentPhase = null;
+
+// Avatar state
+let selectedStyle = "avataaars";
+let avatarSeed = "Student";
 
 const $ = id => document.getElementById(id);
 
@@ -431,17 +475,54 @@ function updateConnectionUI(connected) {
   const connStatus = $("conn-status");
   if (connected) {
     connStatus.textContent = "CONNECTED ✓";
-    connStatus.className = "text-[11px] font-mono font-bold uppercase tracking-wide text-emerald-300";
-    if (connDot) {
-      connDot.className = "status-dot status-dot-active";
-    }
+    connStatus.className = "text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wide text-emerald-300 whitespace-nowrap";
+    if (connDot) connDot.className = "status-dot status-dot-active";
   } else {
     connStatus.textContent = "DISCONNECTED";
-    connStatus.className = "text-[11px] font-mono font-bold uppercase tracking-wide text-rose-300";
-    if (connDot) {
-      connDot.className = "status-dot status-dot-inactive";
-    }
+    connStatus.className = "text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wide text-rose-300 whitespace-nowrap";
+    if (connDot) connDot.className = "status-dot status-dot-inactive";
   }
+}
+
+function buildAvatarUrl(style, seed) {
+  const s = encodeURIComponent(seed || "player");
+  return `https://api.dicebear.com/9.x/${style}/svg?seed=${s}&size=128`;
+}
+
+function refreshAvatarPreview() {
+  const nameVal = ($("name").value.trim() || "Student");
+  if (avatarSeed === "Student" || avatarSeed === "") {
+    avatarSeed = nameVal;
+  }
+  const url = buildAvatarUrl(selectedStyle, avatarSeed);
+  $("avatar-preview").src = url;
+}
+
+function initStyleChips() {
+  const container = $("style-chips");
+  container.innerHTML = "";
+  DICEBEAR_STYLES.forEach(style => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "style-chip" + (style === selectedStyle ? " active" : "");
+    chip.textContent = style.replace(/-/g, " ");
+    chip.dataset.style = style;
+    chip.onclick = () => {
+      selectedStyle = style;
+      document.querySelectorAll(".style-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      refreshAvatarPreview();
+    };
+    container.appendChild(chip);
+  });
+}
+
+function randomSeed() {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let s = "";
+  for (let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  avatarSeed = s;
+  refreshAvatarPreview();
 }
 
 function connect() {
@@ -465,6 +546,11 @@ function send(obj) {
 function handle(msg) {
   if (msg.type === "joined") {
     playerId = msg.player_id;
+    const me = msg.game_state?.players?.[playerId];
+    if (me?.avatar) {
+      myAvatarUrl = me.avatar;
+      $("my-avatar").src = myAvatarUrl;
+    }
     show("lobby");
     $("my-name").textContent = myName;
     $("lobby-code").textContent = gameCode;
@@ -481,39 +567,56 @@ function handle(msg) {
 function updateBulkyTimerDisplay(timeLeft) {
   const timerEl = $("time-left");
   if (!timerEl) return;
-
   if (typeof timeLeft === "number") {
     timerEl.textContent = timeLeft;
-    // Dynamic countdown timer color states
     if (timeLeft <= 5) {
-      timerEl.className = "timer timer-digit text-6xl sm:text-7xl md:text-8xl py-1 sm:py-2 my-1 timer-critical";
+      timerEl.className = "timer timer-digit text-5xl sm:text-7xl md:text-8xl py-1 sm:py-2 my-0.5 sm:my-1 timer-critical";
     } else if (timeLeft <= 10) {
-      timerEl.className = "timer timer-digit text-6xl sm:text-7xl md:text-8xl py-1 sm:py-2 my-1 timer-warning";
+      timerEl.className = "timer timer-digit text-5xl sm:text-7xl md:text-8xl py-1 sm:py-2 my-0.5 sm:my-1 timer-warning";
     } else {
-      timerEl.className = "timer timer-digit text-6xl sm:text-7xl md:text-8xl py-1 sm:py-2 my-1 timer-normal";
+      timerEl.className = "timer timer-digit text-5xl sm:text-7xl md:text-8xl py-1 sm:py-2 my-0.5 sm:my-1 timer-normal";
     }
   } else {
     timerEl.textContent = timeLeft ?? "--";
-    timerEl.className = "timer timer-digit text-4xl sm:text-5xl py-2 my-1 timer-normal";
+    timerEl.className = "timer timer-digit text-3xl sm:text-5xl py-1 sm:py-2 my-0.5 sm:my-1 timer-normal";
   }
+}
+
+function avatarImg(url, extraClass = "") {
+  if (!url) {
+    return `<div class="player-avatar ${extraClass} bg-school-blue text-white flex items-center justify-center font-bold text-[10px]">?</div>`;
+  }
+  return `<img class="player-avatar ${extraClass}" src="${url}" alt="" onerror="this.style.display='none'" />`;
 }
 
 function renderState(s) {
   if (!s) return;
 
-  // Render player list in lobby
+  // Auto-clear input text on round transitions
+  if (currentPhase !== s.phase) {
+    if (s.phase === "playing" || s.phase === "countdown") {
+      $("answer").value = "";
+    }
+    currentPhase = s.phase;
+  }
+
+  // Lobby player list with avatars
   const players = Object.values(s.players || {});
   $("player-list").innerHTML = players.map(p =>
-    `<div class="flex justify-between items-center recessed-blue p-2.5 rounded-xl text-xs font-sans shadow-sm">
-      <div class="flex items-center gap-2">
-        <div class="w-6 h-6 rounded-md bg-school-blue text-white flex items-center justify-center font-bold text-[10px]">
-          ${p.name.charAt(0).toUpperCase()}
-        </div>
-        <span class="font-bold text-school-blue">${p.name}</span>
+    `<div class="flex justify-between items-center recessed-blue p-2 sm:p-2.5 rounded-xl text-xs font-sans shadow-sm gap-2">
+      <div class="flex items-center gap-2 min-w-0">
+        ${avatarImg(p.avatar)}
+        <span class="font-bold text-school-blue truncate">${p.name}</span>
       </div>
-      <span class="text-school-orange font-bold font-mono">${p.score} PTS</span>
+      <span class="text-school-orange font-bold font-mono text-[11px] sm:text-xs shrink-0">${p.score} PTS</span>
     </div>`
   ).join("");
+
+  // Keep my avatar updated
+  if (playerId && s.players?.[playerId]?.avatar) {
+    myAvatarUrl = s.players[playerId].avatar;
+    $("my-avatar").src = myAvatarUrl;
+  }
 
   if (s.phase === "lobby") {
     show("lobby");
@@ -528,14 +631,10 @@ function renderState(s) {
   else if (s.phase === "playing") {
     show("playing");
     $("round-num").textContent = `${s.current_round} / ${s.total_rounds}`;
-    
-    // Update Oversized Bulky Timer
     updateBulkyTimerDisplay(s.time_left);
-
     $("hint").textContent =
       `DEFINITION: ${s.definition || ""}\n` +
       `FIRST LETTER: [ ${s.first_letter || "?"} ]    LENGTH: [ ${s.letter_count || "?"} LETTERS ]`;
-
     const me = Object.entries(s.players || {}).find(([id]) => id === playerId);
     const answered = me && me[1].answered;
     if (answered) {
@@ -552,17 +651,18 @@ function renderState(s) {
     $("correct-word").textContent = (s.correct_word || "").toUpperCase();
     const res = s.last_results || {};
     $("result-list").innerHTML = Object.values(res).map(r =>
-      `<div class="flex items-center justify-between p-2.5 rounded-xl font-sans text-xs border shadow-sm ${
-        r.correct 
-          ? 'bg-emerald-50 border-emerald-300 text-emerald-900' 
+      `<div class="flex items-center justify-between p-2 sm:p-2.5 rounded-xl font-sans text-xs border shadow-sm gap-2 ${
+        r.correct
+          ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
           : 'bg-rose-50 border-rose-300 text-rose-900'
       }">
-        <div class="flex items-center gap-2">
-          <i class="bi ${r.correct ? 'bi-check-circle-fill text-emerald-600' : 'bi-x-circle-fill text-rose-500'} text-sm"></i>
-          <span class="font-bold text-school-blue">${r.name}:</span>
-          <span class="italic text-slate-700">"${r.answer || '(NO RESPONSE)'}"</span>
+        <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+          ${avatarImg(r.avatar)}
+          <i class="bi ${r.correct ? 'bi-check-circle-fill text-emerald-600' : 'bi-x-circle-fill text-rose-500'} text-xs sm:text-sm shrink-0"></i>
+          <span class="font-bold text-school-blue truncate">${r.name}:</span>
+          <span class="italic text-slate-700 truncate">"${r.answer || '(NO RESPONSE)'}"</span>
         </div>
-        <span class="font-bold text-school-orange font-mono">+${r.score} PTS</span>
+        <span class="font-bold text-school-orange font-mono text-[11px] sm:text-xs shrink-0">+${r.score} PTS</span>
       </div>`
     ).join("");
   }
@@ -574,25 +674,39 @@ function renderState(s) {
       if (idx === 2) return '🥉';
       return `${idx + 1}.`;
     };
-
-    $("ranking").innerHTML = (s.ranking || []).map(([n, sc], i) =>
-      `<li class="flex justify-between items-center bg-white border border-school-orange-border p-3 rounded-xl shadow-sm my-1">
-        <span class="flex items-center gap-2 text-school-blue">
-          <span class="text-base">${getRankBadge(i)}</span>
-          <span>${n}</span>
+    const ranking = s.ranking || [];
+    $("ranking").innerHTML = ranking.map((entry, i) => {
+      const name = entry.name ?? entry[0] ?? "???";
+      const score = entry.score ?? entry[1] ?? 0;
+      const avatar = entry.avatar ?? null;
+      return `<li class="flex justify-between items-center bg-white border border-school-orange-border p-2.5 sm:p-3 rounded-xl shadow-sm my-1 gap-2">
+        <span class="flex items-center gap-2 text-school-blue min-w-0">
+          <span class="text-sm sm:text-base shrink-0">${getRankBadge(i)}</span>
+          ${avatarImg(avatar, "player-avatar-lg")}
+          <span class="truncate">${name}</span>
         </span>
-        <span class="text-school-orange font-black font-mono">${sc} PTS</span>
-      </li>`
-    ).join("");
+        <span class="text-school-orange font-black font-mono shrink-0">${score} PTS</span>
+      </li>`;
+    }).join("");
   }
 }
 
+// --- Event listeners ---
 $("btn-join").onclick = () => {
   myName = $("name").value.trim();
   gameCode = $("code").value.trim().toUpperCase();
   if (!myName) { $("join-msg").textContent = "ENTER YOUR NAME"; return; }
   if (!gameCode) { $("join-msg").textContent = "ENTER THE GAME CODE"; return; }
-  send({ action: "join_game", game_code: gameCode, player_name: myName });
+
+  const seed = avatarSeed || myName;
+
+  send({
+    action: "join_game",
+    game_code: gameCode,
+    player_name: myName,
+    avatar_style: selectedStyle,
+    avatar_seed: seed,
+  });
 };
 
 $("btn-answer").onclick = () => {
@@ -607,6 +721,17 @@ $("btn-answer").onclick = () => {
   $("answer").value = "";
 };
 
+// LIVE TYPING STREAMING: Transmit current text as user types
+$("answer").addEventListener("input", (e) => {
+  if (!gameCode || !playerId) return;
+  send({
+    action: "live_typing",
+    game_code: gameCode,
+    player_id: playerId,
+    current_input: e.target.value
+  });
+});
+
 $("answer").addEventListener("keydown", e => {
   if (e.key === "Enter") $("btn-answer").click();
 });
@@ -617,6 +742,19 @@ $("answer").addEventListener("keydown", e => {
   });
 });
 
+$("name").addEventListener("input", () => {
+  const val = $("name").value.trim();
+  if (avatarSeed === "Student" || avatarSeed === val.slice(0, -1) || !avatarSeed) {
+    avatarSeed = val || "Student";
+  }
+  refreshAvatarPreview();
+});
+
+$("btn-random-seed").onclick = randomSeed;
+
+// Init
+initStyleChips();
+refreshAvatarPreview();
 connect();
 </script>
 </body>

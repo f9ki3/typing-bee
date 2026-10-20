@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spelling Bee – MaterA Matibay Teacher Console</title>
+<!-- Fonts & Frameworks -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Plus Jakarta Sans', 'sans-serif'],
+          heading: ['Fredoka', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          school: {
+            orange: '#fa8424',
+            'orange-hover': '#e07016',
+            'orange-light': '#fef3ea',
+            'orange-soft': '#fff8f3',
+            'orange-border': '#fcd2b2',
+            blue: '#1c1b9d',
+            'blue-dark': '#131273',
+            'blue-light': '#e8e8f8',
+            'blue-soft': '#f0f0fb',
+            'blue-border': '#b8b7e8',
+            slate: '#475569',
+            card: '#ffffff'
+          }
+        },
+        boxShadow: {
+          'school-sm': '0 2px 8px rgba(28, 27, 157, 0.06), 0 1px 2px rgba(250, 132, 36, 0.08)',
+          'school-md': '0 4px 16px rgba(28, 27, 157, 0.08), 0 2px 4px rgba(250, 132, 36, 0.1)',
+          'school-lg': '0 10px 25px -5px rgba(28, 27, 157, 0.12), 0 8px 10px -6px rgba(250, 132, 36, 0.12)',
+          'tactile': '0 4px 0 #131273',
+          'tactile-orange': '0 4px 0 #b85b0d'
+        }
+      }
+    }
+  }
+</script>
+<style>
+  :root {
+    --bg-main: #fffcf8;
+    --primary-orange: #fa8424;
+    --primary-blue: #1c1b9d;
+  }
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: var(--bg-main);
+    background-image:
+      radial-gradient(#fa8424 0.75px, transparent 0.75px),
+      radial-gradient(#1c1b9d 0.75px, #fffcf8 0.75px);
+    background-size: 30px 30px;
+    background-position: 0 0, 15px 15px;
+    color: #1e293b;
+    user-select: none;
+  }
+  .school-card {
+    background: #ffffff;
+    border: 2px solid #fcd2b2;
+    border-radius: 1rem;
+    box-shadow: 0 4px 16px rgba(28, 27, 157, 0.06);
+    transition: all 0.2s ease;
+  }
+  .school-card-blue {
+    background: #ffffff;
+    border: 2px solid #b8b7e8;
+    border-radius: 1rem;
+    box-shadow: 0 4px 16px rgba(28, 27, 157, 0.08);
+  }
+  .recessed-orange {
+    background: #fef3ea;
+    border: 1.5px solid #fcd2b2;
+    border-radius: 0.75rem;
+  }
+  .recessed-blue {
+    background: #f0f0fb;
+    border: 1.5px solid #b8b7e8;
+    border-radius: 0.75rem;
+  }
+  .btn-school-blue {
+    background-color: #1c1b9d;
+    color: #ffffff;
+    border-bottom: 4px solid #131273;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    transition: all 0.1s ease;
+  }
+  .btn-school-blue:hover:not(:disabled) {
+    background-color: #2726b8;
+    transform: translateY(-1px);
+  }
+  .btn-school-blue:active:not(:disabled) {
+    transform: translateY(3px);
+    border-bottom-width: 1px;
+  }
+  .btn-school-orange {
+    background-color: #fa8424;
+    color: #ffffff;
+    border-bottom: 4px solid #be5d0b;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    transition: all 0.1s ease;
+  }
+  .btn-school-orange:hover:not(:disabled) {
+    background-color: #fc933d;
+    transform: translateY(-1px);
+  }
+  .btn-school-orange:active:not(:disabled) {
+    transform: translateY(3px);
+    border-bottom-width: 1px;
+  }
+  .timer-ring-circle {
+    transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
+  }
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #fef3ea;
+    border-radius: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #fcd2b2;
+    border-radius: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #fa8424; }
+
+  /* Avatar styles */
+  .player-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 0.5rem;
+    border: 2px solid #b8b7e8;
+    object-fit: cover;
+    background: #f0f0fb;
+    flex-shrink: 0;
+  }
+  .player-avatar-lg {
+    width: 32px;
+    height: 32px;
+    border-radius: 0.55rem;
+  }
+
+  /* Live Terminal Box Styles (Strictly for input textboxes) */
+  .terminal-box {
+    background-color: #0f172a;
+    border: 1.5px solid #1e293b;
+    border-radius: 0.65rem;
+    color: #38bdf8;
+    font-family: 'JetBrains Mono', monospace;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+  .terminal-cursor {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    background-color: #38bdf8;
+    margin-left: 2px;
+    animation: blink 1s infinite;
+    vertical-align: middle;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+</style>
+</head>
+<body class="min-h-screen lg:h-screen lg:overflow-hidden text-slate-800 antialiased flex flex-col justify-between p-2 sm:p-4 gap-3">
+  <!-- Background Audio Loop -->
+  <audio id="bg-audio" loop preload="auto">
+    <source src="background.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Top School Header Bar -->
+  <header class="bg-school-blue text-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-school-md border-b-4 border-school-blue-dark shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-xl bg-white p-1.5 flex items-center justify-center shadow-md shrink-0 relative overflow-hidden border border-school-blue-border">
+        <img src="mes_logo.png" alt="MES Logo" id="mes-logo" class="w-full h-full object-contain" onerror="this.style.display='none'; document.getElementById('fallback-logo-icon').classList.remove('hidden');" />
+        <div id="fallback-logo-icon" class="hidden text-school-orange font-bold text-2xl flex items-center justify-center">
+          <i class="bi bi-award-fill"></i>
+        </div>
+      </div>
+      <div>
+        <h1 class="text-base sm:text-xl font-bold font-heading uppercase tracking-wide text-white leading-none mt-1 flex items-center gap-2">
+          MaterA Matibay<span class="text-amber-300 font-normal text-xs sm:text-sm">| SPELLING BEE KIOSK</span>
+        </h1>
+      </div>
+    </div>
+    <div class="flex items-center gap-2.5">
+      <button id="sound-toggle" onclick="toggleAudio()" class="btn-school-orange px-3 py-2 rounded-xl flex items-center gap-2 text-xs font-bold shadow-sm" title="Toggle Audio Sound Effects">
+        <i id="sound-icon" class="bi bi-volume-up-fill text-white text-base"></i>
+        <span class="hidden md:inline font-sans text-xs">AUDIO: ON</span>
+      </button>
+      <div class="bg-school-blue-dark/80 px-3 py-1.5 rounded-xl flex items-center gap-2.5 border border-school-blue-border/30">
+        <div class="relative flex h-3 w-3 items-center justify-center">
+          <span id="conn-dot-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span id="conn-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400"></span>
+        </div>
+        <div class="flex flex-col text-left">
+          <span class="text-[8px] font-mono uppercase text-school-blue-border leading-none">SYSTEM LINK</span>
+          <span class="font-mono font-bold text-amber-300 text-[11px] leading-tight uppercase tracking-wider" id="conn-status">CONNECTING...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <main class="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0 h-full">
+    <!-- Left / Primary Controller Panel -->
+    <div class="lg:col-span-7 flex flex-col gap-3 h-full min-h-0">
+
+      <!-- CREATE SESSION PANEL -->
+      <section id="create-panel" class="school-card p-6 rounded-2xl text-center flex flex-col items-center justify-center gap-4 flex-1 bg-gradient-to-b from-school-orange-soft to-white">
+        <div class="w-16 h-16 rounded-2xl bg-school-orange-light border-2 border-school-orange-border flex items-center justify-center text-school-orange shadow-inner">
+          <i class="bi bi-rocket-takeoff-fill text-3xl"></i>
+        </div>
+        <div class="space-y-1.5 max-w-md mx-auto">
+          <h2 class="text-2xl font-bold font-heading text-school-blue uppercase tracking-wide">Initialize Game Session</h2>
+          <p class="msg text-xs text-slate-600 font-sans leading-relaxed">Start an active Spelling Bee room session so student terminals can connect to this live kiosk.</p>
+        </div>
+        <button id="btn-create" class="btn-school-orange text-white px-8 py-3.5 rounded-xl text-base flex items-center gap-2.5 shadow-school-md">
+          <i class="bi bi-play-circle-fill text-xl"></i>
+          <span>CREATE GAME SESSION</span>
+        </button>
+      </section>
+
+      <!-- CONTROL PANEL (lobby + game over only) -->
+      <section id="control-panel" class="school-card p-3 sm:p-4 rounded-2xl flex flex-col gap-3 hidden shrink-0 bg-white border-t-4 border-t-school-orange">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+          <div class="md:col-span-7 recessed-orange p-3 rounded-xl relative flex flex-col items-center justify-center border-l-4 border-l-school-orange">
+            <button id="btn-copy-code" onclick="copyGameCode()" class="btn-school-orange absolute top-2 right-2 text-white p-1.5 rounded-lg text-xs" title="Copy Room Code">
+              <i class="bi bi-copy"></i>
+            </button>
+            <span class="text-[10px] uppercase font-bold tracking-widest text-school-orange font-sans">STUDENT JOIN CODE</span>
+            <div class="code text-3xl sm:text-4xl font-extrabold tracking-widest text-school-blue font-mono leading-tight my-0.5" id="game-code">------</div>
+            <span class="text-[10px] text-slate-500 font-sans">Share this code with students on their terminals</span>
+          </div>
+          <div class="md:col-span-5 recessed-blue p-3 rounded-xl flex flex-col justify-between h-full gap-2">
+            <div class="flex items-center justify-between border-b border-school-blue-border/40 pb-1.5">
+              <span class="text-[11px] font-heading font-bold uppercase text-school-blue flex items-center gap-1.5">
+                <i class="bi bi-sliders text-school-orange"></i> QUICK CONFIG
+              </span>
+              <button id="btn-config" class="btn-school-blue text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1">
+                <i class="bi bi-check2-circle"></i>
+                <span>APPLY</span>
+              </button>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="flex flex-col text-[10px] font-bold text-school-blue">
+                <span class="mb-0.5">ROUNDS:</span>
+                <input id="rounds" type="number" min="1" max="20" value="5" class="bg-white border-2 border-school-blue-border text-school-blue font-mono font-bold text-xs rounded-lg px-2 py-1 text-center focus:outline-none focus:border-school-orange">
+              </label>
+              <label class="flex flex-col text-[10px] font-bold text-school-blue">
+                <span class="mb-0.5">TIMER (S):</span>
+                <input id="timer" type="number" min="5" max="120" value="20" class="bg-white border-2 border-school-blue-border text-school-blue font-mono font-bold text-xs rounded-lg px-2 py-1 text-center focus:outline-none focus:border-school-orange">
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-start" class="btn-school-orange flex-1 text-white py-3 px-4 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="bi bi-play-fill text-xl"></i>
+            <span>START MATCH</span>
+          </button>
+          <button id="btn-reset" class="btn-school-blue hidden py-3 px-4 rounded-xl text-sm flex items-center justify-center gap-2">
+            <i class="bi bi-arrow-counterclockwise text-base"></i>
+            <span>RESTART</span>
+          </button>
+        </div>
+        <p class="msg text-[11px] text-center text-school-orange font-bold font-sans min-h-[1.25rem] my-0 leading-tight" id="control-msg"></p>
+      </section>
+
+      <!-- LIVE GAME PANEL -->
+      <section id="game-panel" class="school-card p-3 sm:p-4 rounded-2xl flex flex-col gap-3 hidden flex-1 min-h-0 border-l-4 border-l-school-orange">
+        <div class="recessed-orange p-3 rounded-xl flex items-center justify-between">
+          <div class="flex items-center gap-2 font-heading font-bold text-sm text-school-blue">
+            <span class="px-3 py-1 rounded-lg bg-white border border-school-orange-border text-school-orange font-mono shadow-sm">
+              ROUND <span id="round-num" class="font-extrabold text-school-blue">-</span> / <span id="total-rounds" class="text-slate-500">-</span>
+            </span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider hidden sm:inline">COUNTDOWN</span>
+            <div class="relative w-11 h-11 flex items-center justify-center">
+              <svg class="w-11 h-11 transform -rotate-90" viewBox="0 0 36 36">
+                <path class="text-school-orange-border" stroke-width="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path id="timer-ring" class="timer-ring-circle text-school-orange" stroke-dasharray="100, 100" stroke-dashoffset="0" stroke-linecap="round" stroke-width="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+              <span class="timer absolute text-xs font-black font-mono text-school-blue" id="time-left">--</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="recessed-blue p-3.5 rounded-xl space-y-2 border-t-2 border-t-school-blue relative overflow-hidden">
+          <div class="flex items-center justify-between border-b border-school-blue-border/40 pb-1.5">
+            <span class="text-[10px] font-bold uppercase text-school-blue tracking-wider flex items-center gap-1.5">
+              <i class="bi bi-shield-lock-fill text-school-orange"></i> TARGET WORD (CONFIDENTIAL - TEACHER ONLY)
+            </span>
+            <span class="text-[9px] font-bold bg-school-orange text-white px-2 py-0.5 rounded-full uppercase">CONFIDENTIAL</span>
+          </div>
+          <div id="teacher-word" class="text-2xl sm:text-3xl font-black font-mono text-school-blue tracking-widest uppercase my-1"></div>
+          <div class="bg-white p-2.5 rounded-lg border border-school-blue-border/50 shadow-sm">
+            <span class="text-[9px] font-bold uppercase text-slate-400 block">STUDENT PROMPT DEFINITION:</span>
+            <p id="teacher-def" class="text-xs text-slate-700 italic font-sans leading-snug mt-0.5"></p>
+          </div>
+          <div class="flex items-center gap-2 pt-1">
+            <div class="flex-1 bg-white px-2.5 py-1.5 rounded-lg border border-school-blue-border/40 text-[11px] font-mono flex items-center justify-between shadow-sm">
+              <span class="text-slate-500 font-sans text-[10px]">STARTS WITH:</span>
+              <strong id="first-letter" class="text-school-blue font-bold uppercase text-xs"></strong>
+            </div>
+            <div class="flex-1 bg-white px-2.5 py-1.5 rounded-lg border border-school-blue-border/40 text-[11px] font-mono flex items-center justify-between shadow-sm">
+              <span class="text-slate-500 font-sans text-[10px]">LENGTH:</span>
+              <strong id="letter-count" class="text-school-blue font-bold text-xs"></strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIVE TERMINAL STREAMING CONTAINER WITH POP-OUT BUTTON -->
+        <div class="flex-1 min-h-0 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <h2 class="text-[11px] font-heading font-bold uppercase tracking-wider text-school-blue flex items-center gap-2">
+              <i class="bi bi-terminal-fill text-school-orange animate-pulse"></i> LIVE TERMINAL STREAMING
+            </h2>
+            <div class="flex items-center gap-2">
+              <button onclick="popOutTerminals()" class="btn-school-orange px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm" title="Open Public Terminal Window on Projector / TV">
+                <i class="bi bi-box-arrow-up-right"></i> POP OUT PUBLIC BROADCAST
+              </button>
+            </div>
+          </div>
+          <!-- Notice: The target answer is NOT shown inside this live stream box -->
+          <div id="live-answers" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-2.5 pr-1"></div>
+        </div>
+      </section>
+
+      <!-- ROUND RESULTS PANEL -->
+      <section id="result-panel" class="school-card p-3 sm:p-4 rounded-2xl flex flex-col gap-3 hidden flex-1 min-h-0 border-l-4 border-l-emerald-500">
+        <div class="recessed-orange p-3 rounded-xl flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+            <i class="bi bi-check-circle-fill text-xl"></i>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold uppercase text-emerald-700 tracking-wider">ROUND COMPLETED</span>
+            <p class="msg font-sans text-xs text-slate-700">
+              CORRECT SPELLING: <strong id="correct-word" class="text-school-blue font-mono font-bold uppercase text-sm"></strong>
+            </p>
+          </div>
+        </div>
+        <div class="flex-1 min-h-0 flex flex-col gap-2">
+          <h3 class="text-[11px] font-heading font-bold uppercase tracking-wider text-school-blue">SUBMISSION BREAKDOWN</h3>
+          <div id="result-list" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-2 pr-1"></div>
+        </div>
+      </section>
+
+      <!-- GAME OVER PANEL -->
+      <section id="over-panel" class="school-card p-4 rounded-2xl flex flex-col gap-3 hidden flex-1 min-h-0 border-l-4 border-l-school-orange">
+        <div class="text-center space-y-1">
+          <div class="w-14 h-14 rounded-2xl bg-school-orange-light border-2 border-school-orange-border text-school-orange flex items-center justify-center mx-auto text-3xl shadow-sm">
+            <i class="bi bi-trophy-fill"></i>
+          </div>
+          <h2 class="text-xl font-bold font-heading uppercase tracking-wide text-school-blue">FINAL CHAMPIONSHIP STANDINGS</h2>
+          <p class="text-xs text-slate-500 font-sans">Match concluded! Verified leaderboard rankings:</p>
+        </div>
+        <ol id="ranking" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-2 list-none p-0 pr-1"></ol>
+      </section>
+    </div>
+
+    <!-- Right / Secondary Panel -->
+    <div class="lg:col-span-5 flex flex-col gap-3 h-full min-h-0">
+      <div class="school-card-blue p-3.5 rounded-2xl flex flex-col gap-2.5 flex-1 min-h-0">
+        <div class="flex items-center justify-between pb-2 border-b border-school-blue-border/40">
+          <div class="flex items-center gap-2 font-heading font-bold text-xs text-school-blue uppercase">
+            <i class="bi bi-people-fill text-school-orange text-sm"></i>
+            <span>CONNECTED TERMINALS</span>
+          </div>
+          <span class="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-school-blue text-white shadow-sm">
+            <span id="player-count">0</span> LINKED
+          </span>
+        </div>
+        <div id="player-list" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+          <p class="msg text-xs text-slate-400 font-sans text-center py-8 italic">Awaiting active student terminals...</p>
+        </div>
+      </div>
+
+      <div id="words-panel" class="school-card p-3.5 rounded-2xl flex flex-col gap-2.5 hidden h-1/2 min-h-0 border-t-4 border-t-school-blue">
+        <div class="flex items-center justify-between pb-2 border-b border-school-orange-border font-heading font-bold text-xs text-school-blue uppercase">
+          <span class="flex items-center gap-2">
+            <i class="bi bi-journal-bookmark-fill text-school-orange"></i> MATCH WORD BANK
+          </span>
+        </div>
+        <div id="word-list" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-2 text-xs pr-1"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-school-blue text-white text-xs px-4 py-3 rounded-xl shadow-school-lg flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-4 pointer-events-none z-50 border border-school-blue-border">
+    <i class="bi bi-info-circle-fill text-amber-300 text-base"></i>
+    <span id="toast-msg" class="font-sans font-medium">Notification</span>
+  </div>
+
+<script>
+const WS_URL = `ws://${location.hostname || 'localhost'}:8001`;
+let ws = null;
+let gameCode = null;
+let reconnectTimer = null;
+let lastPhase = null;
+let audioEnabled = true;
+let currentTargetWord = "";
+let currentPhase = "lobby";
+
+// Pop-Out Window & Broadcast State
+let popoutWindow = null;
+const broadcastChannel = ('BroadcastChannel' in window) ? new BroadcastChannel('spelling_bee_live_stream') : null;
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const bgAudio = document.getElementById("bg-audio");
+bgAudio.volume = 0.35;
+
+function startBgAudio() {
+  if (audioEnabled && bgAudio.paused) {
+    bgAudio.play().catch(() => {});
+  }
+}
+
+function toggleAudio() {
+  audioEnabled = !audioEnabled;
+  const icon = document.getElementById("sound-icon");
+  const btn = document.getElementById("sound-toggle");
+  if (audioEnabled) {
+    icon.className = "bi bi-volume-up-fill text-white text-base";
+    btn.querySelector('span').textContent = "AUDIO: ON";
+    bgAudio.play().catch(() => {});
+  } else {
+    icon.className = "bi bi-volume-mute-fill text-white/70 text-base";
+    btn.querySelector('span').textContent = "AUDIO: OFF";
+    bgAudio.pause();
+  }
+}
+
+function playSound(type) {
+  if (!audioEnabled) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  if (type === 'start') {
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+  } else if (type === 'tick') {
+    osc.frequency.setValueAtTime(580, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.04);
+  } else if (type === 'over') {
+    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+    osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.35);
+  }
+}
+
+const $ = id => document.getElementById(id);
+
+function showToast(text) {
+  const toast = $("toast");
+  $("toast-msg").textContent = text;
+  toast.classList.remove("opacity-0", "translate-y-4", "pointer-events-none");
+  setTimeout(() => {
+    toast.classList.add("opacity-0", "translate-y-4", "pointer-events-none");
+  }, 2200);
+}
+
+function copyGameCode() {
+  if (!gameCode || gameCode === '------') return;
+  const tempInput = document.createElement("input");
+  tempInput.value = gameCode;
+  document.body.appendChild(tempInput);
+  tempInput.select();
+  document.execCommand("copy");
+  document.body.removeChild(tempInput);
+  showToast("ROOM CODE COPIED TO CLIPBOARD!");
+}
+
+function show(...ids) {
+  ["create-panel","control-panel","game-panel","result-panel","words-panel","over-panel"]
+    .forEach(id => {
+      const el = $(id);
+      if (el) {
+        if (ids.includes(id)) el.classList.remove("hidden");
+        else el.classList.add("hidden");
+      }
+    });
+}
+
+function avatarImg(url, extraClass = "") {
+  if (!url) {
+    return `<div class="player-avatar ${extraClass} bg-school-blue text-white flex items-center justify-center font-bold text-[10px]">?</div>`;
+  }
+  return `<img class="player-avatar ${extraClass}" src="${url}" alt="" onerror="this.style.display='none'" />`;
+}
+
+// POP OUT PUBLIC BROADCAST TERMINAL WINDOW (LIGHT THEME MATCHING MAIN PAGE)
+function popOutTerminals() {
+  const w = 1080, h = 760;
+  const left = (screen.width/2) - (w/2);
+  const top = (screen.height/2) - (h/2);
+  
+  popoutWindow = window.open("", "SpellingBee_LiveTerminals", `width=${w},height=${h},top=${top},left=${left},resizable=yes,scrollbars=yes,status=no`);
+  
+  if (popoutWindow) {
+    popoutWindow.document.write(`
+      <!DOCTYPE html>
+      <html class="h-full">
+      <head>
+        <title>PUBLIC STAGE BROADCAST - SPELLING BEE</title>
+        <script src="https://cdn.tailwindcss.com"><\/script>
+        <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=JetBrains+Mono:wght@700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+        <script>
+          tailwind.config = {
+            theme: {
+              extend: {
+                fontFamily: {
+                  sans: ['Plus Jakarta Sans', 'sans-serif'],
+                  heading: ['Fredoka', 'sans-serif'],
+                  mono: ['JetBrains Mono', 'monospace'],
+                },
+                colors: {
+                  school: {
+                    orange: '#fa8424',
+                    'orange-light': '#fef3ea',
+                    'orange-border': '#fcd2b2',
+                    blue: '#1c1b9d',
+                    'blue-dark': '#131273',
+                    'blue-border': '#b8b7e8',
+                    'blue-soft': '#f0f0fb'
+                  }
+                }
+              }
+            }
+          }
+        <\/script>
+        <style>
+          body { 
+            background-color: #fffcf8; 
+            color: #1e293b; 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-image: radial-gradient(#fa8424 0.75px, transparent 0.75px), radial-gradient(#1c1b9d 0.75px, #fffcf8 0.75px);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+          }
+          .school-card { background: #ffffff; border: 2px solid #fcd2b2; border-radius: 1rem; box-shadow: 0 4px 16px rgba(28, 27, 157, 0.08); }
+          .recessed-blue { background: #f0f0fb; border: 1.5px solid #b8b7e8; border-radius: 0.75rem; }
+          .recessed-orange { background: #fef3ea; border: 1.5px solid #fcd2b2; border-radius: 0.75rem; }
+          
+          /* Dark terminal styling ONLY inside student input box */
+          .terminal-box { background-color: #0f172a; border: 1.5px solid #1e293b; border-radius: 0.65rem; color: #38bdf8; font-family: 'JetBrains Mono', monospace; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); }
+          .terminal-cursor { display: inline-block; width: 10px; height: 18px; background-color: #38bdf8; margin-left: 2px; animation: blink 1s infinite; vertical-align: middle; }
+          @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+          .player-avatar { width: 34px; height: 34px; border-radius: 0.6rem; border: 2px solid #b8b7e8; object-fit: cover; }
+        </style>
+      </head>
+      <body class="p-4 sm:p-6 min-h-screen flex flex-col justify-between">
+        <header class="bg-school-blue text-white rounded-2xl px-5 py-4 flex items-center justify-between shadow-lg border-b-4 border-school-blue-dark mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-white text-school-orange flex items-center justify-center font-black text-2xl shadow-sm">
+              <i class="bi bi-broadcast"></i>
+            </div>
+            <div>
+              <h1 class="text-xl font-bold font-heading uppercase tracking-wide text-white">MATERA MATIBAY SPELLING BEE</h1>
+              <p class="text-xs text-amber-300 font-mono tracking-wider font-bold">PUBLIC STAGE STREAM BROADCAST</p>
+            </div>
+          </div>
+          <div class="bg-school-blue-dark px-4 py-2 rounded-xl flex items-center gap-2.5 border border-school-blue-border/40">
+            <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs font-mono font-bold text-emerald-300 uppercase tracking-widest">LIVE BROADCAST</span>
+          </div>
+        </header>
+
+        <!-- PUBLIC DISPLAY TARGET WORD BANNER (HIDDEN DURING ROUND, REVEALED AFTER TIMER) -->
+        <section id="popout-word-banner" class="recessed-orange p-4 rounded-2xl mb-4 text-center border-2 border-school-orange-border shadow-sm">
+          <span id="popout-banner-label" class="text-[10px] font-bold uppercase font-sans tracking-widest text-school-orange block">
+            ${currentPhase === 'round_result' || currentPhase === 'game_over' ? 'CORRECT TARGET WORD' : 'SPELLING BEE IN PROGRESS'}
+          </span>
+          <div id="popout-target-word" class="text-3xl sm:text-5xl font-extrabold font-mono text-school-blue tracking-widest uppercase my-1">
+            ${(currentPhase === 'round_result' || currentPhase === 'game_over') && currentTargetWord ? currentTargetWord.toUpperCase() : '••••••••'}
+          </div>
+          <span id="popout-banner-sub" class="text-xs text-slate-500 font-sans italic">
+            ${currentPhase === 'round_result' || currentPhase === 'game_over' ? 'Official word spelling verified' : 'Listen carefully to the teacher and spell the target word!'}
+          </span>
+        </section>
+
+        <!-- LIVE TERMINALS GRID -->
+        <main id="popout-terminals-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
+          <div class="col-span-full flex items-center justify-center text-slate-400 font-sans text-sm italic py-16">
+            Awaiting active round streaming transmission...
+          </div>
+        </main>
+      </body>
+      </html>
+    `);
+    popoutWindow.document.close();
+  }
+}
+
+function updatePopoutWord(word, phase) {
+  currentTargetWord = word || "";
+  currentPhase = phase || "lobby";
+  if (popoutWindow && !popoutWindow.closed) {
+    const wordEl = popoutWindow.document.getElementById("popout-target-word");
+    const labelEl = popoutWindow.document.getElementById("popout-banner-label");
+    const subEl = popoutWindow.document.getElementById("popout-banner-sub");
+
+    const revealAnswer = (phase === 'round_result' || phase === 'game_over');
+
+    if (wordEl) {
+      if (revealAnswer && currentTargetWord) {
+        wordEl.textContent = currentTargetWord.toUpperCase();
+        wordEl.className = "text-3xl sm:text-5xl font-extrabold font-mono text-emerald-600 tracking-widest uppercase my-1";
+      } else {
+        wordEl.textContent = "••••••••";
+        wordEl.className = "text-3xl sm:text-5xl font-extrabold font-mono text-school-blue tracking-widest uppercase my-1";
+      }
+    }
+    if (labelEl) {
+      labelEl.textContent = revealAnswer ? "CORRECT TARGET WORD" : "SPELLING BEE IN PROGRESS";
+    }
+    if (subEl) {
+      subEl.textContent = revealAnswer ? "Official word spelling verified" : "Listen carefully to the teacher and spell the target word!";
+    }
+  }
+}
+
+function broadcastTypingUpdate(playerId, playerName, text) {
+  // Update local popout window if open
+  if (popoutWindow && !popoutWindow.closed) {
+    const termEl = popoutWindow.document.getElementById(`popout-term-${playerId}`);
+    if (termEl) termEl.textContent = text || "";
+  }
+  // Broadcast via channel
+  if (broadcastChannel) {
+    broadcastChannel.postMessage({ type: 'typing', playerId, text, targetWord: currentTargetWord });
+  }
+}
+
+function broadcastGridState(htmlContent) {
+  if (popoutWindow && !popoutWindow.closed) {
+    const gridEl = popoutWindow.document.getElementById("popout-terminals-grid");
+    if (gridEl) gridEl.innerHTML = htmlContent;
+  }
+}
+
+function connect() {
+  ws = new WebSocket(WS_URL);
+  ws.onopen = () => {
+    $("conn-status").textContent = "ONLINE";
+    $("conn-status").className = "font-mono font-bold text-amber-300 text-[11px] leading-tight uppercase tracking-wider";
+    $("conn-dot").className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400";
+    $("conn-dot-ping").className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75";
+    if (reconnectTimer) { clearInterval(reconnectTimer); reconnectTimer = null; }
+  };
+  ws.onclose = () => {
+    $("conn-status").textContent = "DISCONNECTED";
+    $("conn-status").className = "font-mono font-bold text-rose-300 text-[11px] leading-tight uppercase tracking-wider";
+    $("conn-dot").className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-400";
+    $("conn-dot-ping").className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-300 opacity-75";
+    if (!reconnectTimer) reconnectTimer = setInterval(connect, 2000);
+  };
+  ws.onerror = () => ws.close();
+  ws.onmessage = (ev) => handle(JSON.parse(ev.data));
+}
+
+function send(obj) {
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj));
+}
+
+function handle(msg) {
+  if (msg.type === "game_created") {
+    gameCode = msg.game_code;
+    $("game-code").textContent = gameCode;
+    show("control-panel");
+    renderState(msg.game_state);
+    showToast("ROOM SESSION CREATED!");
+  }
+  else if (msg.type === "game_state") {
+    renderState(msg.game_state);
+  }
+  else if (msg.type === "student_typing_update") {
+    // REAL-TIME DIRECT TERMINAL UPDATE IN CONSOLE
+    const termTextEl = document.getElementById(`live-terminal-${msg.player_id}`);
+    if (termTextEl) {
+      termTextEl.textContent = msg.current_input || "";
+    }
+    // Forward update to popout public broadcast window
+    broadcastTypingUpdate(msg.player_id, msg.player_name, msg.current_input);
+  }
+  else if (msg.type === "error") {
+    $("control-msg").textContent = msg.message;
+  }
+}
+
+function updateTimerRing(secondsLeft) {
+  const ring = document.getElementById("timer-ring");
+  if (!ring) return;
+  const max = parseInt($("timer").value, 10) || 20;
+  const num = parseInt(secondsLeft, 10);
+  if (isNaN(num)) {
+    ring.style.strokeDashoffset = 0;
+    return;
+  }
+  const pct = Math.max(0, Math.min(1, num / max));
+  const offset = 100 - (pct * 100);
+  ring.style.strokeDashoffset = offset;
+  if (pct < 0.25) {
+    ring.setAttribute("class", "timer-ring-circle text-rose-500");
+  } else if (pct < 0.5) {
+    ring.setAttribute("class", "timer-ring-circle text-amber-500");
+  } else {
+    ring.setAttribute("class", "timer-ring-circle text-school-orange");
+  }
+}
+
+function renderState(s) {
+  if (!s) return;
+
+  if (s.phase !== lastPhase) {
+    if (s.phase === "playing") playSound('start');
+    if (s.phase === "game_over") playSound('over');
+    lastPhase = s.phase;
+  }
+
+  const players = Object.values(s.players || {});
+  const playerEntries = Object.entries(s.players || {});
+  $("player-count").textContent = players.length;
+
+  // Connected Student Terminals
+  $("player-list").innerHTML = players.map(p => `
+    <div class="recessed-blue p-2.5 rounded-xl flex items-center justify-between shadow-sm">
+      <div class="flex items-center gap-2.5 min-w-0">
+        ${avatarImg(p.avatar)}
+        <span class="text-xs font-bold text-school-blue font-sans truncate">${p.name}</span>
+      </div>
+      <div class="flex items-center gap-2 font-mono shrink-0">
+        <span class="text-xs font-bold text-school-orange">${p.score} PTS</span>
+        ${p.answered
+          ? '<span class="text-emerald-600 text-[10px] bg-emerald-100 px-2 py-0.5 rounded-md font-sans font-bold border border-emerald-200"><i class="bi bi-check-lg"></i> READY</span>'
+          : '<span class="text-slate-400 text-[10px] bg-white px-2 py-0.5 rounded-md border border-slate-200"><i class="bi bi-hourglass-split"></i> WAIT</span>'}
+      </div>
+    </div>
+  `).join("") || '<p class="msg text-xs text-slate-400 font-sans text-center py-8 italic">Awaiting active student terminals...</p>';
+
+  // Word List Bank
+  if (s.word_list && s.word_list.length) {
+    $("words-panel").classList.remove("hidden");
+    $("word-list").innerHTML = s.word_list.map((w, i) => `
+      <div class="recessed-orange p-2.5 rounded-xl space-y-1">
+        <div class="flex items-center gap-1.5">
+          <span class="w font-mono font-bold text-school-blue text-xs">${i + 1}. ${w.word.toUpperCase()}</span>
+        </div>
+        <div class="text-slate-600 text-[11px] italic leading-snug">${w.definition}</div>
+      </div>
+    `).join("");
+  }
+
+  // ---- PANEL VISIBILITY ----
+  // control-panel is ONLY shown in lobby and game_over
+  if (s.phase === "lobby") {
+    show("control-panel", s.word_list ? "words-panel" : null);
+    $("btn-start").disabled = false;
+    $("btn-reset").classList.add("hidden");
+    $("control-msg").textContent = "";
+    updatePopoutWord("", s.phase);
+  }
+  else if (s.phase === "countdown") {
+    // Hide control-panel during match
+    show("game-panel");
+    $("time-left").textContent = "--";
+    updateTimerRing(0);
+    $("btn-start").disabled = true;
+    updatePopoutWord(s.word || "", s.phase);
+  }
+  else if (s.phase === "playing") {
+    // Hide control-panel during match
+    show("game-panel", "words-panel");
+    $("round-num").textContent = s.current_round;
+    $("total-rounds").textContent = s.total_rounds;
+
+    const remainingSec = s.time_left ?? "--";
+    $("time-left").textContent = remainingSec;
+    updateTimerRing(remainingSec);
+    
+    const wordText = (s.word || "").toUpperCase();
+    $("teacher-word").textContent = wordText;
+    $("teacher-def").textContent = s.definition || "";
+    $("first-letter").textContent = s.first_letter || "";
+    $("letter-count").textContent = s.letter_count || "";
+
+    // Sync state to popup broadcast - HIDDEN answer during playing phase
+    updatePopoutWord(wordText, s.phase);
+
+    // Live Submissions with Real-Time Typing Terminals (Console View)
+    const consoleTerminalHtml = playerEntries.map(([pid, p]) => `
+      <div class="recessed-orange p-3 rounded-xl flex flex-col gap-2 font-sans shadow-sm border border-school-orange-border/80">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 min-w-0">
+            ${avatarImg(p.avatar)}
+            <span class="text-xs font-extrabold text-school-blue truncate">${p.name}</span>
+          </div>
+          ${p.answered
+            ? '<span class="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300 flex items-center gap-1 shrink-0"><i class="bi bi-check-circle-fill"></i> LOCKED</span>'
+            : '<span class="text-[9px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300 flex items-center gap-1 shrink-0"><i class="bi bi-pencil-fill animate-pulse"></i> TYPING</span>'}
+        </div>
+        
+        <!-- Live Terminal Stream Box -->
+        <div class="terminal-box px-3 py-2 flex items-center justify-between text-xs font-mono">
+          <div class="truncate flex items-center">
+            <span class="text-slate-500 mr-1.5 select-none">&gt;</span>
+            <span id="live-terminal-${pid}" class="text-sky-300 font-bold uppercase tracking-wider">${p.live_input || ""}</span>
+            <span class="terminal-cursor"></span>
+          </div>
+          <span class="text-[8px] text-slate-500 uppercase tracking-widest font-sans ml-2 shrink-0">RAW FEED</span>
+        </div>
+      </div>
+    `).join("");
+
+    $("live-answers").innerHTML = consoleTerminalHtml;
+    $("btn-start").disabled = true;
+
+    // Build Public Popout Stage Broadcast View HTML
+    const popoutBroadcastHtml = playerEntries.map(([pid, p]) => `
+      <div class="school-card p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <img class="player-avatar" src="${p.avatar || ''}" alt="" />
+            <span class="text-sm font-extrabold font-heading text-school-blue uppercase tracking-wide">${p.name}</span>
+          </div>
+          ${p.answered
+            ? '<span class="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-300">SUBMITTED</span>'
+            : '<span class="text-[10px] font-mono font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md border border-amber-300">SPELLING...</span>'}
+        </div>
+        
+        <!-- Student Terminal Box (Dark mode container strictly for terminal output) -->
+        <div class="terminal-box p-3 text-lg flex items-center justify-between">
+          <div class="truncate flex items-center">
+            <span class="text-slate-500 mr-2">&gt;</span>
+            <span id="popout-term-${pid}" class="text-sky-300 font-black uppercase tracking-widest">${p.live_input || ''}</span>
+            <span class="terminal-cursor"></span>
+          </div>
+        </div>
+      </div>
+    `).join("");
+
+    broadcastGridState(popoutBroadcastHtml);
+  }
+  else if (s.phase === "round_result") {
+    // Hide control-panel during match
+    show("result-panel", "words-panel");
+    $("correct-word").textContent = (s.correct_word || "").toUpperCase();
+    
+    // REVEAL answer in public stream popout when round ends
+    updatePopoutWord(s.correct_word || "", s.phase);
+    
+    const res = s.last_results || {};
+
+    $("result-list").innerHTML = Object.values(res).map(r => `
+      <div class="p-2.5 rounded-xl border text-xs ${r.correct ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50'} flex items-center justify-between font-sans shadow-sm">
+        <div class="flex items-center gap-2 min-w-0">
+          ${avatarImg(r.avatar)}
+          <i class="bi ${r.correct ? 'bi-check-circle-fill text-emerald-600' : 'bi-x-circle-fill text-rose-500'} text-sm shrink-0"></i>
+          <span class="font-bold text-school-blue shrink-0">${r.name}:</span>
+          <span class="${r.correct ? 'text-emerald-800 font-bold' : 'text-rose-700 font-semibold'} truncate">"${r.answer || '(NO RESPONSE)'}"</span>
+        </div>
+        <span class="font-bold text-school-orange font-mono shrink-0 ml-2">+${r.score} PTS</span>
+      </div>
+    `).join("");
+  }
+  else if (s.phase === "game_over") {
+    // Show control-panel again so teacher can RESTART
+    show("control-panel", "over-panel", "words-panel");
+    $("btn-reset").classList.remove("hidden");
+    $("btn-start").disabled = true;
+
+    updatePopoutWord(s.correct_word || "", s.phase);
+
+    const getRankBadge = (idx) => {
+      if (idx === 0) return '<div class="w-7 h-7 rounded-lg bg-amber-400 text-white flex items-center justify-center font-bold text-xs shadow-sm"><i class="bi bi-trophy-fill"></i></div>';
+      if (idx === 1) return '<div class="w-7 h-7 rounded-lg bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs shadow-sm">2</div>';
+      if (idx === 2) return '<div class="w-7 h-7 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">3</div>';
+      return `<div class="w-7 h-7 rounded-lg bg-school-blue-soft border border-school-blue-border text-school-blue flex items-center justify-center font-bold text-xs">${idx + 1}</div>`;
+    };
+
+    $("ranking").innerHTML = (s.ranking || []).map((entry, i) => {
+      const name = entry.name ?? entry[0] ?? "???";
+      const score = entry.score ?? entry[1] ?? 0;
+      const avatar = entry.avatar ?? null;
+      return `
+        <li class="flex justify-between items-center bg-white border border-school-orange-border p-3 rounded-xl shadow-sm gap-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            ${getRankBadge(i)}
+            ${avatarImg(avatar, "player-avatar-lg")}
+            <span class="font-bold text-school-blue text-sm truncate">${name}</span>
+          </div>
+          <span class="text-school-orange font-black font-mono text-sm shrink-0">${score} PTS</span>
+        </li>
+      `;
+    }).join("");
+  }
+}
+
+// Event Listeners
+$("btn-create").onclick = () => {
+  startBgAudio();
+  send({ action: "create_game" });
+};
+
+$("btn-config").onclick = () => {
+  const r = parseInt($("rounds").value, 10);
+  const t = parseInt($("timer").value, 10);
+  send({ action: "set_config", game_code: gameCode, rounds: r, timer: t });
+  showToast("CONFIG UPDATED!");
+};
+
+$("btn-start").onclick = () => {
+  startBgAudio();
+  send({ action: "start_game", game_code: gameCode });
+};
+
+$("btn-reset").onclick = () => {
+  send({ action: "reset_game", game_code: gameCode });
+};
+
+connect();
+</script>
+</body>
+</html>
