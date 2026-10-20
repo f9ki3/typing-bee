@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Typing Bee Server
-A local network typing competition application for classrooms
-No authentication, no ads, no external dependencies
+Spelling Bee Server
+A local network spelling competition for classrooms
+No authentication, no ads
+Requires: websockets  (pip install websockets)
+Uses: http.server + threading for static files
 """
 
 import asyncio
@@ -14,266 +16,456 @@ from datetime import datetime
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import threading
 import os
+import time
 
-# Game state
-games = {}
-connections = {}
-
-# Sample sentences for typing practice - Topic: Fast Cars (~30 words each)
-SENTENCES = [
-    "The Bugatti Chiron is one of the fastest cars ever made. It can reach speeds over two hundred miles per hour. This amazing car costs more than three million dollars.",
-    "Race car drivers need quick reflexes and steady hands. They practice for years to master high speed turns. Safety equipment like helmets and fire suits protect them during crashes.",
-    "Electric cars are becoming faster every year. The Tesla Model S can accelerate from zero to sixty in under two seconds. Battery technology keeps improving to make these cars even quicker.",
-    "The famous Lamborghini brand makes some of the most exciting sports cars in the world. Their engines roar loudly and their designs look like something from a science fiction movie.",
-    "Formula One racing features the fastest cars on any track. These vehicles use advanced technology and lightweight materials. Pit crews can change all four tires in less than three seconds.",
-    "Muscle cars from the nineteen sixties and seventies are still popular today. The Ford Mustang and Chevrolet Camaro became American icons. Many collectors restore these classic vehicles to perfect condition.",
-    "Drag racing tests which car can cover a quarter mile the fastest. Top fuel dragsters reach over three hundred miles per hour. The races last only a few exciting seconds.",
-    "The Porsche nine eleven has been a legendary sports car for decades. It features a unique rear engine design that improves handling. Many racing champions learned to drive in a Porsche.",
-    "Supercars use carbon fiber bodies to reduce weight and increase speed. Lighter cars can accelerate faster and handle better around corners. This special material is stronger than steel but much lighter.",
-    "NASCAR races happen on oval tracks across America. Drivers compete at speeds near two hundred miles per hour for hours. Teamwork between drivers and pit crews determines who wins each race.",
-    "The McLaren company builds both racing cars and street legal supercars. Their vehicles feature cutting edge aerodynamics and powerful engines. Each car takes hundreds of hours to build by hand.",
-    "Japan produces many fast and reliable sports cars. The Nissan GTR and Toyota Supra are favorites among car enthusiasts. These vehicles offer amazing performance at prices lower than European competitors.",
-    "Wind tunnels help engineers design faster and more efficient cars. Air resistance slows vehicles down at high speeds. Smooth shapes and special spoilers help cars cut through the air more easily.",
-    "The Hennessey Venom holds records for incredible straight line speed. This Texas built hypercar combines American muscle with modern technology. Only a handful of these rare machines exist in the world.",
-    "Learning to drive a fast car safely takes patience and practice. Professional driving schools teach techniques for handling high performance vehicles. Respecting the power of these machines keeps everyone safe on the road.",
+# ---------------------------------------------------------------------------
+# Word list (word, definition)
+# ---------------------------------------------------------------------------
+WORD_LIST = [
+    ("calendar", "a chart that shows the days, weeks, and months of a year"),
+    ("necessary", "required or needed; essential"),
+    ("knowledge", "information and understanding gained through learning"),
+    ("character", "the qualities that define a person"),
+    ("vegetable", "a plant used as food"),
+    ("geography", "the study of Earth's land and features"),
+    ("ancient", "very old; from long ago"),
+    ("courage", "bravery in facing difficulty"),
+    ("imagination", "the ability to form new ideas or images"),
+    ("environment", "the natural world around us"),
+    ("government", "the system that runs a country or state"),
+    ("favorite", "liked the most"),
+    ("exercise", "physical activity for fitness"),
+    ("umbrella", "a tool used to stay dry in the rain"),
+    ("treasure", "valuable items that are hidden or found"),
+    ("alphabet", "the set of letters used in a language"),
+    ("adventure", "an exciting or unusual experience"),
+    ("furniture", "movable items like tables and chairs"),
+    ("celebrate", "to honor an occasion with joy"),
+    ("mountain", "a very high landform"),
+    ("chocolate", "a sweet food made from cacao beans"),
+    ("elephant", "a large gray animal with a trunk"),
+    ("bicycle", "a two-wheeled vehicle you pedal"),
+    ("hospital", "a place where sick people are treated"),
+    ("library", "a place where books are kept and borrowed"),
+    ("sandwich", "food made of two slices of bread with filling"),
+    ("whisper", "to speak very softly"),
+    ("journey", "a trip from one place to another"),
+    ("triangle", "a shape with three sides"),
+    ("architect", "a person who designs buildings"),
+    ("brilliant", "very bright or very smart"),
+    ("decision", "a choice that is made"),
+    ("fossil", "the remains of an ancient plant or animal"),
+    ("grammar", "the rules of a language"),
+    ("horizon", "the line where the earth and sky appear to meet"),
+    ("jealous", "feeling envy of someone else's success"),
+    ("kingdom", "a country ruled by a king or queen"),
+    ("lantern", "a portable light with a protective case"),
+    ("migrate", "to move from one region to another"),
+    ("nervous", "feeling worried or anxious"),
+    ("observe", "to watch carefully"),
+    ("parade", "a public procession of people and vehicles"),
+    ("quarter", "one of four equal parts"),
+    ("rescue", "to save someone from danger"),
+    ("schedule", "a plan of times for events"),
+    ("unusual", "not common or ordinary"),
+    ("volcano", "a mountain that can erupt lava"),
+    ("warning", "a statement that alerts about danger"),
+    ("appreciate", "to be thankful for something"),
+    ("camouflage", "coloring that helps something blend in"),
+    ("delicious", "very pleasant to taste"),
+    ("enthusiastic", "showing great excitement or interest"),
+    ("genuine", "real and authentic"),
+    ("hesitate", "to pause before doing something"),
+    ("invisible", "unable to be seen"),
+    ("literature", "written works such as novels and poems"),
+    ("marvelous", "extremely good or wonderful"),
+    ("negotiate", "to discuss in order to reach an agreement"),
+    ("outrageous", "shockingly bad or excessive"),
+    ("participate", "to take part in something"),
+    ("quantity", "an amount of something"),
+    ("recommend", "to suggest that something is good"),
+    ("signature", "a person's name written in their own handwriting"),
+    ("tournament", "a series of contests to determine a winner"),
+    ("unanimous", "fully in agreement"),
+    ("valuable", "worth a lot of money or important"),
+    ("xylophone", "a musical instrument with wooden bars"),
+    ("zoology", "the scientific study of animals"),
 ]
 
+# ---------------------------------------------------------------------------
+# Global state
+# ---------------------------------------------------------------------------
+games = {}          # game_code -> Game
+connections = {}    # client_id -> websocket
+
+# ---------------------------------------------------------------------------
+# Game class
+# ---------------------------------------------------------------------------
 class Game:
     def __init__(self, game_id, teacher_websocket=None):
         self.game_id = game_id
-        self.sentence = random.choice(SENTENCES)
-        self.players = {}
-        self.started = False
-        self.finished = False
-        self.start_time = None
-        self.teacher_websocket = teacher_websocket  # Track teacher's connection
-        
+        self.teacher_websocket = teacher_websocket
+        self.players = {}           # player_id -> dict
+        self.num_rounds = 5
+        self.timer_seconds = 20
+        self.words = []             # list of (word, definition) for this game
+        self.current_round = 0
+        self.phase = "lobby"        # lobby | countdown | playing | round_result | game_over
+        self.round_ends_at = 0
+        self.last_results = {}
+        self.ranking = []
+        self._round_task = None
+
     def add_player(self, player_name, websocket):
-        player_id = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        player_id = "".join(random.choices(string.ascii_letters + string.digits, k=8))
         self.players[player_id] = {
-            'name': player_name,
-            'websocket': websocket,
-            'progress': 0,
-            'completed': False,
-            'wpm': 0,
-            'accuracy': 0,
-            'finish_time': None
+            "name": player_name,
+            "websocket": websocket,
+            "score": 0,
+            "answered": False,
+            "last_answer": None,
         }
         return player_id
-    
-    def start_game(self):
-        self.started = True
-        self.start_time = datetime.now()
-    
-    def update_progress(self, player_id, progress, wpm, accuracy, completed):
-        if player_id in self.players:
-            self.players[player_id]['progress'] = progress
-            self.players[player_id]['wpm'] = wpm
-            self.players[player_id]['accuracy'] = accuracy
-            if completed and not self.players[player_id]['completed']:
-                self.players[player_id]['completed'] = True
-                self.players[player_id]['finish_time'] = datetime.now()
-    
-    def get_state(self):
-        return {
-            'game_id': self.game_id,
-            'sentence': self.sentence,
-            'started': self.started,
-            'finished': self.finished,
-            'players': {
-                pid: {
-                    'name': p['name'],
-                    'progress': p['progress'],
-                    'completed': p['completed'],
-                    'wpm': p['wpm'],
-                    'accuracy': p['accuracy']
-                }
-                for pid, p in self.players.items()
+
+    def set_config(self, rounds, timer):
+        if isinstance(rounds, int) and 1 <= rounds <= 20:
+            self.num_rounds = rounds
+        if isinstance(timer, int) and 5 <= timer <= 120:
+            self.timer_seconds = timer
+
+    def prepare_words(self):
+        self.words = random.sample(WORD_LIST, min(self.num_rounds, len(WORD_LIST)))
+
+    def get_state(self, for_teacher=False):
+        """Public state. Teacher gets the actual word; students get definition only."""
+        players_public = {}
+        for pid, p in self.players.items():
+            players_public[pid] = {
+                "name": p["name"],
+                "score": p["score"],
+                "answered": p.get("answered", False),
             }
+
+        state = {
+            "game_id": self.game_id,
+            "phase": self.phase,
+            "num_rounds": self.num_rounds,
+            "timer_seconds": self.timer_seconds,
+            "current_round": self.current_round,
+            "total_rounds": self.num_rounds,
+            "players": players_public,
+            "last_results": self.last_results,
+            "ranking": self.ranking,
         }
 
-def generate_game_code():
-    """Generate a 6-character game code"""
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        if self.phase in ("playing", "countdown", "round_result") and self.current_round > 0:
+            word, definition = self.words[self.current_round - 1]
+            remaining = max(0, int(self.round_ends_at - time.time())) if self.phase == "playing" else self.timer_seconds
+            state["time_left"] = remaining
+            state["definition"] = definition
+            state["letter_count"] = len(word)
+            state["first_letter"] = word[0].upper()
+            if for_teacher:
+                state["word"] = word          # teacher sees the answer
+            if self.phase == "round_result":
+                state["correct_word"] = word
 
-async def handle_websocket(websocket):
-    """Handle WebSocket connections from students and teachers"""
-    client_id = id(websocket)
-    connections[client_id] = websocket
-    
-    # Get client address for logging
+        if self.phase == "game_over":
+            state["ranking"] = self.ranking
+
+        # Always give teacher the full word list for the game
+        if for_teacher and self.words:
+            state["word_list"] = [
+                {"word": w, "definition": d} for w, d in self.words
+            ]
+
+        return state
+
+
+def generate_game_code():
+    return "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
+
+# ---------------------------------------------------------------------------
+# WebSocket helpers
+# ---------------------------------------------------------------------------
+async def send_json(ws, obj):
     try:
-        remote_address = websocket.remote_address
-        print(f"New WebSocket connection from {remote_address}")
-    except:
-        print(f"New WebSocket connection from unknown address")
-    
-    try:
-        async for message in websocket:
-            print(f"Received message: {message[:100]}...")  # Print first 100 chars
-            data = json.loads(message)
-            action = data.get('action')
-            print(f"Action: {action}")
-            
-            if action == 'create_game':
-                # Teacher creates a new game
-                game_code = generate_game_code()
-                while game_code in games:
-                    game_code = generate_game_code()
-                
-                games[game_code] = Game(game_code, teacher_websocket=websocket)
-                
-                await websocket.send(json.dumps({
-                    'type': 'game_created',
-                    'game_code': game_code,
-                    'sentence': games[game_code].sentence
-                }))
-            
-            elif action == 'join_game':
-                # Student joins a game
-                game_code = data.get('game_code', '').upper()
-                player_name = data.get('player_name', 'Anonymous')
-                
-                print(f"Join attempt: {player_name} trying to join {game_code}")
-                print(f"Available games: {list(games.keys())}")
-                
-                if game_code in games:
-                    game = games[game_code]
-                    print(f"Game found! Started: {game.started}")
-                    if not game.started:
-                        player_id = game.add_player(player_name, websocket)
-                        print(f"Player added with ID: {player_id}")
-                        
-                        response = {
-                            'type': 'joined',
-                            'player_id': player_id,
-                            'game_state': game.get_state()
-                        }
-                        print(f"Sending response: {json.dumps(response)[:200]}")
-                        
-                        await websocket.send(json.dumps(response))
-                        
-                        # Broadcast to all players in this game
-                        print(f"Broadcasting game state to all players...")
-                        await broadcast_game_state(game_code)
-                    else:
-                        print("Game already started - rejecting join")
-                        await websocket.send(json.dumps({
-                            'type': 'error',
-                            'message': 'Game already started'
-                        }))
-                else:
-                    print(f"Game not found! Code: {game_code}")
-                    await websocket.send(json.dumps({
-                        'type': 'error',
-                        'message': 'Game not found'
-                    }))
-            
-            elif action == 'start_game':
-                # Teacher starts the game
-                game_code = data.get('game_code', '').upper()
-                if game_code in games:
-                    game = games[game_code]
-                    game.start_game()
-                    await broadcast_game_state(game_code)
-            
-            elif action == 'update_progress':
-                # Student updates their typing progress
-                game_code = data.get('game_code', '').upper()
-                player_id = data.get('player_id')
-                
-                if game_code in games:
-                    game = games[game_code]
-                    game.update_progress(
-                        player_id,
-                        data.get('progress', 0),
-                        data.get('wpm', 0),
-                        data.get('accuracy', 0),
-                        data.get('completed', False)
-                    )
-                    await broadcast_game_state(game_code)
-            
-            elif action == 'get_game_state':
-                # Anyone requests current game state
-                game_code = data.get('game_code', '').upper()
-                if game_code in games:
-                    game = games[game_code]
-                    await websocket.send(json.dumps({
-                        'type': 'game_state',
-                        'game_state': game.get_state()
-                    }))
-    
-    except websockets.exceptions.ConnectionClosed:
+        await ws.send(json.dumps(obj))
+    except Exception:
         pass
-    finally:
-        # Clean up on disconnect
-        del connections[client_id]
+
 
 async def broadcast_game_state(game_code):
-    """Broadcast game state to all players AND the teacher in a game"""
     if game_code not in games:
-        print(f"Cannot broadcast - game {game_code} not found")
         return
-    
     game = games[game_code]
-    message = json.dumps({
-        'type': 'game_state',
-        'game_state': game.get_state()
-    })
-    
-    print(f"Broadcasting to {len(game.players)} players in game {game_code}")
-    
-    # Send to teacher first
-    if game.teacher_websocket:
-        try:
-            await game.teacher_websocket.send(message)
-            print(f"  ✓ Sent to teacher")
-        except Exception as e:
-            print(f"  ✗ Failed to send to teacher: {e}")
-    
-    # Send to all players in this game
-    sent_count = 0
-    for player_id, player in game.players.items():
-        try:
-            await player['websocket'].send(message)
-            sent_count += 1
-            print(f"  ✓ Sent to {player['name']}")
-        except Exception as e:
-            print(f"  ✗ Failed to send to {player['name']}: {e}")
 
+    # Teacher gets full view
+    if game.teacher_websocket:
+        await send_json(game.teacher_websocket, {
+            "type": "game_state",
+            "game_state": game.get_state(for_teacher=True),
+        })
+
+    # Players get student view
+    for pid, p in list(game.players.items()):
+        await send_json(p["websocket"], {
+            "type": "game_state",
+            "game_state": game.get_state(for_teacher=False),
+            "player_id": pid,
+        })
+
+
+async def run_rounds(game_code):
+    """Background coroutine that drives all rounds."""
+    game = games.get(game_code)
+    if not game:
+        return
+
+    game.prepare_words()
+    game.phase = "countdown"
+    await broadcast_game_state(game_code)
+    await asyncio.sleep(3)
+
+    for r in range(1, game.num_rounds + 1):
+        game = games.get(game_code)
+        if not game:
+            return
+
+        word, definition = game.words[r - 1]
+        game.current_round = r
+        game.phase = "playing"
+        game.round_ends_at = time.time() + game.timer_seconds
+        for p in game.players.values():
+            p["answered"] = False
+            p["last_answer"] = None
+
+        print(f"[{game_code}] Round {r}/{game.num_rounds}: {word}")
+        await broadcast_game_state(game_code)
+
+        # Wait until timer ends or everyone answered
+        while time.time() < game.round_ends_at:
+            await asyncio.sleep(0.25)
+            if all(p.get("answered") for p in game.players.values()) and game.players:
+                break
+            # keep timer updated for clients
+            if int(time.time()) % 1 == 0:
+                await broadcast_game_state(game_code)
+
+        # Score
+        results = {}
+        for pid, p in game.players.items():
+            ans = (p.get("last_answer") or "").strip().lower()
+            correct = ans == word.lower()
+            if correct:
+                p["score"] += 1
+            results[pid] = {
+                "name": p["name"],
+                "answer": p.get("last_answer") or "(no answer)",
+                "correct": correct,
+                "score": p["score"],
+            }
+        game.last_results = results
+        game.phase = "round_result"
+        print(f"[{game_code}] Round {r} results: {results}")
+        await broadcast_game_state(game_code)
+        await asyncio.sleep(4)
+
+    # Game over
+    game = games.get(game_code)
+    if not game:
+        return
+    ranking = sorted(
+        [(p["name"], p["score"]) for p in game.players.values()],
+        key=lambda x: -x[1],
+    )
+    game.ranking = ranking
+    game.phase = "game_over"
+    print(f"[{game_code}] GAME OVER: {ranking}")
+    await broadcast_game_state(game_code)
+
+
+# ---------------------------------------------------------------------------
+# WebSocket handler
+# ---------------------------------------------------------------------------
+async def handle_websocket(websocket):
+    client_id = id(websocket)
+    connections[client_id] = websocket
+
+    try:
+        remote = websocket.remote_address
+        print(f"New connection from {remote}")
+    except Exception:
+        print("New connection")
+
+    try:
+        async for message in websocket:
+            try:
+                data = json.loads(message)
+            except json.JSONDecodeError:
+                continue
+            action = data.get("action")
+            print(f"Action: {action}")
+
+            # ---- Teacher creates game ----
+            if action == "create_game":
+                code = generate_game_code()
+                while code in games:
+                    code = generate_game_code()
+                games[code] = Game(code, teacher_websocket=websocket)
+                await send_json(websocket, {
+                    "type": "game_created",
+                    "game_code": code,
+                    "game_state": games[code].get_state(for_teacher=True),
+                })
+                print(f"Game created: {code}")
+
+            # ---- Teacher sets config ----
+            elif action == "set_config":
+                code = data.get("game_code", "").upper()
+                if code in games:
+                    game = games[code]
+                    if game.teacher_websocket is websocket and game.phase == "lobby":
+                        game.set_config(data.get("rounds"), data.get("timer"))
+                        await broadcast_game_state(code)
+                        print(f"[{code}] Config → rounds={game.num_rounds} timer={game.timer_seconds}")
+
+            # ---- Student joins ----
+            elif action == "join_game":
+                code = data.get("game_code", "").upper()
+                name = (data.get("player_name") or "Anonymous").strip()[:20]
+                print(f"Join: {name} → {code}")
+                if code not in games:
+                    await send_json(websocket, {"type": "error", "message": "Game not found"})
+                    continue
+                game = games[code]
+                if game.phase != "lobby":
+                    await send_json(websocket, {"type": "error", "message": "Game already started"})
+                    continue
+                # prevent duplicate names
+                if any(p["name"].lower() == name.lower() for p in game.players.values()):
+                    await send_json(websocket, {"type": "error", "message": "Name already taken"})
+                    continue
+                pid = game.add_player(name, websocket)
+                await send_json(websocket, {
+                    "type": "joined",
+                    "player_id": pid,
+                    "game_state": game.get_state(for_teacher=False),
+                })
+                await broadcast_game_state(code)
+                print(f"  {name} joined ({pid})")
+
+            # ---- Teacher starts ----
+            elif action == "start_game":
+                code = data.get("game_code", "").upper()
+                if code in games:
+                    game = games[code]
+                    if game.teacher_websocket is websocket and game.phase == "lobby":
+                        if not game.players:
+                            await send_json(websocket, {"type": "error", "message": "No players yet"})
+                            continue
+                        # launch rounds in background
+                        asyncio.create_task(run_rounds(code))
+                        print(f"[{code}] Game started")
+
+            # ---- Student submits answer ----
+            elif action == "submit_answer":
+                code = data.get("game_code", "").upper()
+                pid = data.get("player_id")
+                answer = (data.get("answer") or "").strip()
+                if code in games:
+                    game = games[code]
+                    if game.phase == "playing" and pid in game.players:
+                        if not game.players[pid].get("answered"):
+                            game.players[pid]["last_answer"] = answer
+                            game.players[pid]["answered"] = True
+                            print(f"  {game.players[pid]['name']} → {answer}")
+                            await broadcast_game_state(code)
+
+            # ---- Request current state ----
+            elif action == "get_game_state":
+                code = data.get("game_code", "").upper()
+                if code in games:
+                    game = games[code]
+                    is_teacher = game.teacher_websocket is websocket
+                    await send_json(websocket, {
+                        "type": "game_state",
+                        "game_state": game.get_state(for_teacher=is_teacher),
+                    })
+
+            # ---- Teacher resets for new game ----
+            elif action == "reset_game":
+                code = data.get("game_code", "").upper()
+                if code in games:
+                    game = games[code]
+                    if game.teacher_websocket is websocket:
+                        # keep players, reset scores & phase
+                        game.phase = "lobby"
+                        game.current_round = 0
+                        game.words = []
+                        game.last_results = {}
+                        game.ranking = []
+                        for p in game.players.values():
+                            p["score"] = 0
+                            p["answered"] = False
+                            p["last_answer"] = None
+                        await broadcast_game_state(code)
+                        print(f"[{code}] Reset to lobby")
+
+    except websockets.exceptions.ConnectionClosed:
+        pass
+    except Exception as e:
+        print(f"Handler error: {e}")
+    finally:
+        if client_id in connections:
+            del connections[client_id]
+        # clean up teacher or player references
+        for code, game in list(games.items()):
+            if game.teacher_websocket is websocket:
+                game.teacher_websocket = None
+                print(f"[{code}] Teacher disconnected")
+            for pid, p in list(game.players.items()):
+                if p["websocket"] is websocket:
+                    name = p["name"]
+                    del game.players[pid]
+                    print(f"[{code}] {name} left")
+                    asyncio.create_task(broadcast_game_state(code))
+
+
+# ---------------------------------------------------------------------------
+# HTTP static server
+# ---------------------------------------------------------------------------
 def run_http_server():
-    """Run HTTP server for static files"""
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    server = HTTPServer(('0.0.0.0', 8000), SimpleHTTPRequestHandler)
-    print("HTTP Server running on http://0.0.0.0:8000")
+    server = HTTPServer(("0.0.0.0", 8000), SimpleHTTPRequestHandler)
+    print("HTTP Server  → http://0.0.0.0:8000")
     server.serve_forever()
 
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 async def main():
-    """Start the WebSocket server"""
     print("=" * 60)
-    print("TYPING BEE SERVER")
+    print("  🐝  SPELLING BEE SERVER")
     print("=" * 60)
-    print("\nStarting servers...")
-    
-    # Start HTTP server in a separate thread
+
     http_thread = threading.Thread(target=run_http_server, daemon=True)
     http_thread.start()
-    
-    # Start WebSocket server
-    server = await websockets.serve(handle_websocket, "0.0.0.0", 8001)
-    print("WebSocket Server running on ws://0.0.0.0:8001")
-    print("\n" + "=" * 60)
-    print("READY!")
-    print("=" * 60)
-    print("\nTeacher: Open http://localhost:8000/teacher.html")
-    print("Students: Open http://localhost:8000/student.html")
-    print("\nOr use your computer's IP address to connect from other devices")
-    print("=" * 60 + "\n")
-    
-    await asyncio.Future()  # Run forever
+
+    async with websockets.serve(handle_websocket, "0.0.0.0", 8001):
+        print("WebSocket    → ws://0.0.0.0:8001")
+        print("=" * 60)
+        print("  Teacher  : http://localhost:8000/teacher.html")
+        print("  Students : http://localhost:8000/student.html")
+        print("  (use your LAN IP for other devices)")
+        print("=" * 60)
+        await asyncio.Future()  # run forever
+
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\n\nShutting down server...")
+        print("\nShutting down…")
