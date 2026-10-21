@@ -107,6 +107,11 @@
     color: #f43f5e;
     animation: pulse-critical 0.8s infinite alternate;
   }
+  .timer-paused {
+    color: #94a3b8;
+    animation: none !important;
+    text-shadow: none;
+  }
   @keyframes pulse-critical {
     from { opacity: 1; transform: scale(1); }
     to { opacity: 0.85; transform: scale(1.02); }
@@ -159,6 +164,12 @@
     border-color: #fa8424;
     outline: none;
     box-shadow: 0 0 0 4px rgba(250, 132, 36, 0.15);
+  }
+  .kiosk-input:disabled {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #94a3b8;
+    cursor: not-allowed;
   }
   .custom-scroll::-webkit-scrollbar { width: 5px; }
   .custom-scroll::-webkit-scrollbar-track {
@@ -235,9 +246,35 @@
     height: 32px;
     border-radius: 0.5rem;
   }
+
+  /* Paused overlay */
+  #paused-overlay {
+    background: rgba(19, 18, 115, 0.88);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .pause-icon-bounce {
+    animation: pauseBounce 1.4s ease-in-out infinite;
+  }
+  @keyframes pauseBounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
 </style>
 </head>
 <body class="safe-padding flex flex-col items-center justify-center min-h-screen min-h-[100dvh] w-full">
+
+  <!-- PAUSED OVERLAY (covers everything while teacher has paused the game) -->
+  <div id="paused-overlay" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center text-center p-6">
+    <div class="pause-icon-bounce w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-amber-400 text-school-blue-dark flex items-center justify-center text-6xl shadow-2xl mb-5 border-b-4 border-amber-600">
+      <i class="bi bi-pause-fill"></i>
+    </div>
+    <h2 class="text-3xl sm:text-5xl font-bold font-heading uppercase tracking-widest text-white">GAME PAUSED</h2>
+    <p class="text-amber-300 font-mono font-bold mt-3 text-xs sm:text-sm tracking-wider uppercase">
+      Your teacher paused the game. Please wait…
+    </p>
+    <p class="text-school-blue-border font-sans text-[11px] sm:text-xs mt-2">Your timer is stopped and your typed answer is safe.</p>
+  </div>
 
   <!-- TOP BRANDING / HEADER BAR -->
   <header class="w-full max-w-xl mb-3 flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-school-blue text-white rounded-2xl shadow-school-md border-b-4 border-school-blue-dark">
@@ -369,7 +406,7 @@
       </div>
 
       <div class="timer-bezel rounded-2xl p-2.5 sm:p-4 text-center overflow-hidden">
-        <span class="text-[9px] sm:text-[10px] font-mono uppercase tracking-widest text-slate-300 block mb-0.5">REMAINING ALLOCATED TIME</span>
+        <span id="timer-label" class="text-[9px] sm:text-[10px] font-mono uppercase tracking-widest text-slate-300 block mb-0.5">REMAINING ALLOCATED TIME</span>
         <div class="timer timer-digit text-4xl sm:text-7xl md:text-8xl py-1 sm:py-2 my-0.5 sm:my-1 timer-normal" id="time-left">
           --
         </div>
@@ -419,7 +456,7 @@
       </div>
       <div class="recessed-blue p-2.5 rounded-xl text-center">
         <p class="msg text-[11px] sm:text-xs font-bold font-sans text-school-blue uppercase my-0 flex items-center justify-center gap-1.5">
-          <i class="bi bi-arrow-repeat text-school-orange animate-spin inline-block"></i>
+          <i id="next-round-spinner" class="bi bi-arrow-repeat text-school-orange animate-spin inline-block"></i>
           <span>NEXT ROUND INITIALIZING SHORTLY…</span>
         </p>
       </div>
@@ -458,6 +495,7 @@ let myName = null;
 let myAvatarUrl = null;
 let reconnectTimer = null;
 let currentPhase = null;
+let isPaused = false;
 
 // Avatar state
 let selectedStyle = "avataaars";
@@ -560,25 +598,31 @@ function handle(msg) {
     renderState(msg.game_state);
   }
   else if (msg.type === "error") {
+    // "Game is paused" is expected if someone submits at the instant of a pause; don't treat it as a join error
+    if (msg.message === "Game is paused") return;
     $("join-msg").textContent = msg.message;
   }
 }
 
-function updateBulkyTimerDisplay(timeLeft) {
+function updateBulkyTimerDisplay(timeLeft, paused = false) {
   const timerEl = $("time-left");
   if (!timerEl) return;
+  const base = "timer timer-digit py-1 sm:py-2 my-0.5 sm:my-1 ";
   if (typeof timeLeft === "number") {
     timerEl.textContent = timeLeft;
-    if (timeLeft <= 5) {
-      timerEl.className = "timer timer-digit text-5xl sm:text-7xl md:text-8xl py-1 sm:py-2 my-0.5 sm:my-1 timer-critical";
+    const size = "text-5xl sm:text-7xl md:text-8xl ";
+    if (paused) {
+      timerEl.className = base + size + "timer-paused";
+    } else if (timeLeft <= 5) {
+      timerEl.className = base + size + "timer-critical";
     } else if (timeLeft <= 10) {
-      timerEl.className = "timer timer-digit text-5xl sm:text-7xl md:text-8xl py-1 sm:py-2 my-0.5 sm:my-1 timer-warning";
+      timerEl.className = base + size + "timer-warning";
     } else {
-      timerEl.className = "timer timer-digit text-5xl sm:text-7xl md:text-8xl py-1 sm:py-2 my-0.5 sm:my-1 timer-normal";
+      timerEl.className = base + size + "timer-normal";
     }
   } else {
     timerEl.textContent = timeLeft ?? "--";
-    timerEl.className = "timer timer-digit text-3xl sm:text-5xl py-1 sm:py-2 my-0.5 sm:my-1 timer-normal";
+    timerEl.className = base + "text-3xl sm:text-5xl " + (paused ? "timer-paused" : "timer-normal");
   }
 }
 
@@ -587,6 +631,34 @@ function avatarImg(url, extraClass = "") {
     return `<div class="player-avatar ${extraClass} bg-school-blue text-white flex items-center justify-center font-bold text-[10px]">?</div>`;
   }
   return `<img class="player-avatar ${extraClass}" src="${url}" alt="" onerror="this.style.display='none'" />`;
+}
+
+// ---------------------------------------------------------------------------
+// PAUSE HANDLING
+// ---------------------------------------------------------------------------
+function applyPausedState(phase, paused) {
+  const active = ["countdown", "playing", "round_result"].includes(phase);
+  const nowPaused = !!(paused && active);
+  isPaused = nowPaused;
+
+  $("paused-overlay").classList.toggle("hidden", !nowPaused);
+
+  // Freeze the answer box
+  const input = $("answer");
+  const btn = $("btn-answer");
+  input.disabled = nowPaused;
+  btn.disabled = nowPaused;
+
+  // Timer label
+  $("timer-label").textContent = nowPaused ? "TIMER PAUSED" : "REMAINING ALLOCATED TIME";
+
+  // Stop the "next round" spinner while paused
+  const spinner = $("next-round-spinner");
+  if (spinner) spinner.classList.toggle("animate-spin", !nowPaused);
+
+  if (nowPaused) {
+    input.blur();
+  }
 }
 
 function renderState(s) {
@@ -599,6 +671,9 @@ function renderState(s) {
     }
     currentPhase = s.phase;
   }
+
+  // Apply paused / resumed UI first
+  applyPausedState(s.phase, !!s.paused);
 
   // Lobby player list with avatars
   const players = Object.values(s.players || {});
@@ -623,7 +698,7 @@ function renderState(s) {
   }
   else if (s.phase === "countdown") {
     show("playing");
-    updateBulkyTimerDisplay("READY...");
+    updateBulkyTimerDisplay("READY...", !!s.paused);
     $("hint").textContent = "PREPARE FOR SPELLING TRANSMISSION...";
     $("answer-box").classList.add("hidden");
     $("answered-msg").classList.add("hidden");
@@ -631,7 +706,7 @@ function renderState(s) {
   else if (s.phase === "playing") {
     show("playing");
     $("round-num").textContent = `${s.current_round} / ${s.total_rounds}`;
-    updateBulkyTimerDisplay(s.time_left);
+    updateBulkyTimerDisplay(s.time_left, !!s.paused);
     $("hint").textContent =
       `DEFINITION: ${s.definition || ""}\n` +
       `FIRST LETTER: [ ${s.first_letter || "?"} ]    LENGTH: [ ${s.letter_count || "?"} LETTERS ]`;
@@ -643,7 +718,8 @@ function renderState(s) {
     } else {
       $("answer-box").classList.remove("hidden");
       $("answered-msg").classList.add("hidden");
-      $("answer").focus();
+      // Don't steal focus while paused; refocus once resumed
+      if (!s.paused) $("answer").focus();
     }
   }
   else if (s.phase === "round_result") {
@@ -710,6 +786,7 @@ $("btn-join").onclick = () => {
 };
 
 $("btn-answer").onclick = () => {
+  if (isPaused) return;   // blocked while the teacher has paused
   const answer = $("answer").value.trim();
   if (!answer) return;
   send({
@@ -723,7 +800,7 @@ $("btn-answer").onclick = () => {
 
 // LIVE TYPING STREAMING: Transmit current text as user types
 $("answer").addEventListener("input", (e) => {
-  if (!gameCode || !playerId) return;
+  if (!gameCode || !playerId || isPaused) return;
   send({
     action: "live_typing",
     game_code: gameCode,
@@ -733,7 +810,7 @@ $("answer").addEventListener("input", (e) => {
 });
 
 $("answer").addEventListener("keydown", e => {
-  if (e.key === "Enter") $("btn-answer").click();
+  if (e.key === "Enter" && !isPaused) $("btn-answer").click();
 });
 
 ["name","code"].forEach(id => {
