@@ -233,7 +233,6 @@
     color: #be123c;
   }
 
-  /* ===== Modern Confirmation Modal ===== */
   #confirm-modal {
     position: fixed;
     inset: 0;
@@ -277,7 +276,9 @@
     <source src="background.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- ===== CONFIRMATION MODAL (used for both Remove Player & Stop Match) ===== -->
+  <input type="file" id="csv-file-input" accept=".csv,text/csv" class="hidden" />
+
+  <!-- CONFIRMATION MODAL -->
   <div id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-card">
       <div class="modal-header-bar"></div>
@@ -326,6 +327,10 @@
       <button id="btn-pause" onclick="togglePause()" class="btn-school-orange hidden px-4 py-2 rounded-xl items-center gap-2 text-xs font-bold shadow-sm" title="Pause / Resume the game (Spacebar)">
         <i id="pause-icon" class="bi bi-pause-fill text-white text-base"></i>
         <span id="pause-label" class="font-sans text-xs">PAUSE</span>
+      </button>
+      <button id="btn-header-stop" onclick="requestStopMatch()" class="btn-school-danger hidden px-3.5 py-2 rounded-xl items-center gap-1.5 text-xs font-bold shadow-sm" title="Stop current match and return to lobby">
+        <i class="bi bi-stop-circle-fill text-white text-base"></i>
+        <span class="font-sans text-xs">STOP</span>
       </button>
       <button id="sound-toggle" onclick="toggleAudio()" class="btn-school-orange px-3 py-2 rounded-xl flex items-center gap-2 text-xs font-bold shadow-sm" title="Toggle Audio Sound Effects">
         <i id="sound-icon" class="bi bi-volume-up-fill text-white text-base"></i>
@@ -384,11 +389,11 @@
             <div class="grid grid-cols-2 gap-2">
               <label class="flex flex-col text-[10px] font-bold text-school-blue">
                 <span class="mb-0.5">ROUNDS:</span>
-                <input id="rounds" type="number" min="1" max="20" value="5" class="bg-white border-2 border-school-blue-border text-school-blue font-mono font-bold text-xs rounded-lg px-2 py-1 text-center focus:outline-none focus:border-school-orange">
+                <input id="rounds" type="number" min="1" max="50" value="5" class="bg-white border-2 border-school-blue-border text-school-blue font-mono font-bold text-xs rounded-lg px-2 py-1 text-center focus:outline-none focus:border-school-orange">
               </label>
               <label class="flex flex-col text-[10px] font-bold text-school-blue">
                 <span class="mb-0.5">TIMER (S):</span>
-                <input id="timer" type="number" min="5" max="120" value="20" class="bg-white border-2 border-school-blue-border text-school-blue font-mono font-bold text-xs rounded-lg px-2 py-1 text-center focus:outline-none focus:border-school-orange">
+                <input id="timer" type="number" min="5" max="180" value="20" class="bg-white border-2 border-school-blue-border text-school-blue font-mono font-bold text-xs rounded-lg px-2 py-1 text-center focus:outline-none focus:border-school-orange">
               </label>
             </div>
           </div>
@@ -414,7 +419,10 @@
             </span>
           </div>
           <div class="flex items-center gap-2">
-            <!-- STOP / RESTART button – visible while playing -->
+            <button id="btn-game-pause" onclick="togglePause()" class="btn-school-orange px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-sm" title="Pause or Resume Match">
+              <i id="game-pause-icon" class="bi bi-pause-fill"></i>
+              <span id="game-pause-label">PAUSE</span>
+            </button>
             <button id="btn-stop-game" onclick="requestStopMatch()" class="btn-school-danger px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-sm" title="Stop current match and return to lobby">
               <i class="bi bi-stop-circle-fill"></i>
               <span>STOP / RESTART</span>
@@ -482,7 +490,6 @@
               </p>
             </div>
           </div>
-          <!-- STOP also available on result screen -->
           <button onclick="requestStopMatch()" class="btn-school-danger px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-sm">
             <i class="bi bi-stop-circle-fill"></i>
             <span>STOP / RESTART</span>
@@ -528,10 +535,25 @@
       </div>
 
       <div id="words-panel" class="school-card p-3.5 rounded-2xl flex flex-col gap-2.5 hidden h-1/2 min-h-0 border-t-4 border-t-school-blue">
-        <div class="flex items-center justify-between pb-2 border-b border-school-orange-border font-heading font-bold text-xs text-school-blue uppercase">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-school-orange-border font-heading font-bold text-xs text-school-blue uppercase">
           <span class="flex items-center gap-2">
             <i class="bi bi-journal-bookmark-fill text-school-orange"></i> MATCH WORD BANK
+            <span id="word-bank-badge" class="text-[10px] font-mono bg-school-blue-light text-school-blue px-2 py-0.5 rounded-full">0</span>
           </span>
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="downloadCsvTemplate()" class="btn-school-blue text-[10px] px-2 py-1 rounded-lg flex items-center gap-1" title="Download CSV Template (word,definition)">
+              <i class="bi bi-download"></i>
+              <span>CSV FORMAT</span>
+            </button>
+            <button type="button" onclick="triggerCsvUpload('append')" class="btn-school-green text-[10px] px-2 py-1 rounded-lg flex items-center gap-1" title="Append words from CSV to existing bank">
+              <i class="bi bi-plus-circle-fill"></i>
+              <span>APPEND</span>
+            </button>
+            <button type="button" onclick="triggerCsvUpload('replace')" class="btn-school-orange text-[10px] px-2 py-1 rounded-lg flex items-center gap-1" title="Import & replace word bank from CSV">
+              <i class="bi bi-upload"></i>
+              <span>IMPORT</span>
+            </button>
+          </div>
         </div>
         <div id="word-list" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-2 text-xs pr-1"></div>
       </div>
@@ -555,14 +577,14 @@ let currentTargetWord = "";
 let currentPhase = "lobby";
 let currentPaused = false;
 let lastState = null;
+let pendingCsvMode = "replace";
 
 let popoutWindow = null;
 const broadcastChannel = ('BroadcastChannel' in window) ? new BroadcastChannel('spelling_bee_live_stream') : null;
 
-// Modal state
 let pendingRemoveId = null;
 let pendingRemoveName = "";
-let modalMode = "remove"; // "remove" | "stop"
+let modalMode = "remove";
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const bgAudio = document.getElementById("bg-audio");
@@ -648,17 +670,12 @@ function showToast(text) {
   toast.classList.remove("opacity-0", "translate-y-4", "pointer-events-none");
   setTimeout(() => {
     toast.classList.add("opacity-0", "translate-y-4", "pointer-events-none");
-  }, 2200);
+  }, 2400);
 }
 
 function copyGameCode() {
   if (!gameCode || gameCode === '------') return;
-  const tempInput = document.createElement("input");
-  tempInput.value = gameCode;
-  document.body.appendChild(tempInput);
-  tempInput.select();
-  document.execCommand("copy");
-  document.body.removeChild(tempInput);
+  navigator.clipboard?.writeText(gameCode).catch(() => {});
   showToast("ROOM CODE COPIED TO CLIPBOARD!");
 }
 
@@ -681,34 +698,140 @@ function avatarImg(url, extraClass = "") {
 }
 
 // ---------------------------------------------------------------------------
-// MODERN CONFIRMATION MODAL (Remove Player + Stop Match)
+// CSV WORD BANK: DOWNLOAD TEMPLATE, PARSE, APPEND & IMPORT
 // ---------------------------------------------------------------------------
-function openConfirmModal(mode, playerId, playerName) {
+function downloadCsvTemplate() {
+  const bom = "\uFEFF";
+  const csvContent = bom + [
+    "word,definition",
+    'calendar,"a chart that shows the days, weeks, and months of a year"',
+    'necessary,"required or needed; essential"',
+    'knowledge,"information and understanding gained through learning"'
+  ].join("\r\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "word_bank_template.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("DOWNLOADED CSV TEMPLATE (word,definition)");
+}
+
+function triggerCsvUpload(mode) {
+  if (!gameCode) {
+    showToast("CREATE A GAME SESSION FIRST!");
+    return;
+  }
+  pendingCsvMode = mode;
+  const input = $("csv-file-input");
+  input.value = "";
+  input.click();
+}
+
+function parseCsvRows(text) {
+  const clean = text.replace(/^\uFEFF/, "");
+  const rows = [];
+  let row = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < clean.length; i++) {
+    const ch = clean[i];
+    const next = clean[i + 1];
+    if (inQuotes) {
+      if (ch === '"' && next === '"') {
+        field += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        field += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        row.push(field.trim());
+        field = "";
+      } else if (ch === "\r" && next === "\n") {
+        row.push(field.trim());
+        rows.push(row);
+        row = [];
+        field = "";
+        i++;
+      } else if (ch === "\n" || ch === "\r") {
+        row.push(field.trim());
+        rows.push(row);
+        row = [];
+        field = "";
+      } else {
+        field += ch;
+      }
+    }
+  }
+  if (field.length > 0 || row.length > 0) {
+    row.push(field.trim());
+    rows.push(row);
+  }
+
+  const parsed = [];
+  rows.forEach((cols, idx) => {
+    if (cols.length < 2) return;
+    const w = cols[0].replace(/^\uFEFF/, "").trim();
+    const d = cols.slice(1).join(",").trim();
+    if (!w || !d) return;
+    if (idx === 0 && w.toLowerCase() === "word" && d.toLowerCase().startsWith("definition")) {
+      return;
+    }
+    parsed.push({ word: w, definition: d });
+  });
+  return parsed;
+}
+
+$("csv-file-input").addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const entries = parseCsvRows(String(ev.target?.result || ""));
+    if (!entries.length) {
+      showToast("NO VALID ROWS FOUND. USE: word,definition");
+      return;
+    }
+    send({
+      action: "update_word_bank",
+      game_code: gameCode,
+      mode: pendingCsvMode,
+      words: entries
+    });
+  };
+  reader.readAsText(file, "UTF-8");
+});
+
+// ---------------------------------------------------------------------------
+// CONFIRMATION MODAL (Remove Player & Stop Match)
+// ---------------------------------------------------------------------------
+function openConfirmModal(mode, playerId = null, playerName = "") {
   modalMode = mode;
-  pendingRemoveId = playerId || null;
-  pendingRemoveName = playerName || "";
+  pendingRemoveId = playerId;
+  pendingRemoveName = playerName;
 
-  const iconWrap = $("modal-icon-wrap");
-  const icon = $("modal-icon");
-  const title = $("modal-title");
-  const message = $("modal-message");
-  const confirmLabel = $("modal-confirm-label");
-  const confirmIcon = $("modal-confirm-icon");
-
-  if (mode === "stop") {
-    iconWrap.className = "w-14 h-14 rounded-2xl bg-amber-50 border-2 border-amber-200 text-amber-600 flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm";
-    icon.className = "bi bi-stop-circle-fill";
-    title.textContent = "Stop Match?";
-    message.innerHTML = `This will <strong class="text-school-blue">end the current match</strong> and return everyone to the lobby. All scores will be reset.`;
-    confirmLabel.textContent = "STOP MATCH";
-    confirmIcon.className = "bi bi-stop-circle-fill";
-  } else {
-    iconWrap.className = "w-14 h-14 rounded-2xl bg-rose-50 border-2 border-rose-200 text-rose-500 flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm";
-    icon.className = "bi bi-person-x-fill";
-    title.textContent = "Remove Student?";
-    message.innerHTML = `Are you sure you want to remove <strong id="modal-player-name" class="text-school-blue">${esc(pendingRemoveName)}</strong> from this session?`;
-    confirmLabel.textContent = "REMOVE";
-    confirmIcon.className = "bi bi-trash3-fill";
+  if (mode === "remove") {
+    $("modal-icon").className = "bi bi-person-x-fill";
+    $("modal-title").textContent = "Remove Student?";
+    $("modal-message").innerHTML = `Are you sure you want to remove <strong class="text-school-blue">${esc(playerName)}</strong> from this session?`;
+    $("modal-confirm-icon").className = "bi bi-trash3-fill";
+    $("modal-confirm-label").textContent = "REMOVE";
+  } else if (mode === "stop") {
+    $("modal-icon").className = "bi bi-stop-circle-fill";
+    $("modal-title").textContent = "Stop & Restart Match?";
+    $("modal-message").innerHTML = `This will stop the active match, clear current round scores, and return all connected students to the lobby.`;
+    $("modal-confirm-icon").className = "bi bi-arrow-counterclockwise";
+    $("modal-confirm-label").textContent = "STOP & RESET";
   }
 
   $("confirm-modal").classList.add("show");
@@ -718,554 +841,259 @@ function closeConfirmModal() {
   $("confirm-modal").classList.remove("show");
   pendingRemoveId = null;
   pendingRemoveName = "";
-  modalMode = "remove";
 }
 
-function confirmAction() {
-  if (modalMode === "stop") {
-    if (!gameCode) {
-      closeConfirmModal();
-      return;
-    }
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      showToast("Not connected to server");
-      closeConfirmModal();
-      return;
-    }
-    send({ action: "reset_game", game_code: gameCode });
-    showToast("MATCH STOPPED – RETURNING TO LOBBY");
-    closeConfirmModal();
-    return;
-  }
-
-  // remove player
-  if (!pendingRemoveId || !gameCode) {
-    closeConfirmModal();
-    return;
-  }
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    showToast("Not connected to server");
-    closeConfirmModal();
-    return;
-  }
-
-  send({
-    action: "remove_player",
-    game_code: gameCode,
-    player_id: String(pendingRemoveId)
-  });
-  showToast("PLAYER REMOVED");
-  closeConfirmModal();
-}
-
-$("modal-cancel").onclick = closeConfirmModal;
-$("modal-confirm").onclick = confirmAction;
-
-$("confirm-modal").addEventListener("click", (e) => {
-  if (e.target === $("confirm-modal")) closeConfirmModal();
-});
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && $("confirm-modal").classList.contains("show")) {
-    closeConfirmModal();
-  }
-});
-
-// ---------------------------------------------------------------------------
-// REMOVE PLAYER
-// ---------------------------------------------------------------------------
-function removePlayer(playerId, playerName) {
-  if (!gameCode || !playerId) {
-    showToast("Cannot remove – missing data");
-    return;
-  }
+function requestRemovePlayer(playerId, playerName) {
   openConfirmModal("remove", playerId, playerName);
 }
 
-// ---------------------------------------------------------------------------
-// STOP / RESTART MATCH (available while playing)
-// ---------------------------------------------------------------------------
 function requestStopMatch() {
-  if (!gameCode) return;
   openConfirmModal("stop");
 }
 
-// ---------------------------------------------------------------------------
-// TIE-AWARE RANKING
-// ---------------------------------------------------------------------------
-function buildRankedList(ranking) {
-  if (!ranking || !ranking.length) return [];
-  const sorted = [...ranking].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-  const out = [];
-  let i = 0;
-  while (i < sorted.length) {
-    const score = sorted[i].score ?? 0;
-    let j = i;
-    while (j < sorted.length && (sorted[j].score ?? 0) === score) j++;
-    const rank = i + 1;
-    for (let k = i; k < j; k++) {
-      out.push({ ...sorted[k], rank, tied: (j - i) > 1 });
-    }
-    i = j;
+$("modal-cancel").onclick = closeConfirmModal;
+$("modal-confirm").onclick = () => {
+  if (modalMode === "remove" && pendingRemoveId && gameCode) {
+    send({
+      action: "remove_player",
+      game_code: gameCode,
+      player_id: pendingRemoveId
+    });
+    showToast(`REMOVED ${pendingRemoveName.toUpperCase()}`);
+  } else if (modalMode === "stop" && gameCode) {
+    send({
+      action: "reset_game",
+      game_code: gameCode
+    });
+    showToast("MATCH STOPPED — RETURNED TO LOBBY");
   }
-  return out;
-}
+  closeConfirmModal();
+};
 
 // ---------------------------------------------------------------------------
-// PAUSE / PLAY
+// POP-OUT PUBLIC BROADCAST (Shows Definition + Clues, NEVER the Answer)
 // ---------------------------------------------------------------------------
-function togglePause() {
-  if (!gameCode) return;
-  send({ action: "toggle_pause", game_code: gameCode });
-}
-
-document.addEventListener("keydown", (e) => {
-  if (e.code !== "Space") return;
-  const tag = (e.target && e.target.tagName) || "";
-  if (tag === "INPUT" || tag === "TEXTAREA") return;
-  const btn = $("btn-pause");
-  if (btn && !btn.classList.contains("hidden")) {
-    e.preventDefault();
-    togglePause();
-  }
-});
-
-function updatePausedUI(phase, paused) {
-  const isActivePhase = ["countdown", "playing", "round_result"].includes(phase);
-  const btn = $("btn-pause");
-  const icon = $("pause-icon");
-  const label = $("pause-label");
-
-  if (isActivePhase) {
-    btn.classList.remove("hidden");
-    btn.classList.add("flex");
-  } else {
-    btn.classList.add("hidden");
-    btn.classList.remove("flex");
-  }
-
-  if (paused && isActivePhase) {
-    icon.className = "bi bi-play-fill text-white text-base";
-    label.textContent = "RESUME";
-    btn.classList.remove("btn-school-orange");
-    btn.classList.add("btn-school-green");
-    $("paused-banner").classList.remove("hidden");
-    document.body.classList.add("is-paused");
-  } else {
-    icon.className = "bi bi-pause-fill text-white text-base";
-    label.textContent = "PAUSE";
-    btn.classList.remove("btn-school-green");
-    btn.classList.add("btn-school-orange");
-    $("paused-banner").classList.add("hidden");
-    document.body.classList.remove("is-paused");
-  }
-
-  if (paused !== lastPaused) {
-    if (paused && isActivePhase) {
-      bgAudio.pause();
-      playSound('pause');
-      showToast("GAME PAUSED");
-    } else if (!paused) {
-      if (audioEnabled && isActivePhase) bgAudio.play().catch(() => {});
-      if (isActivePhase) {
-        playSound('resume');
-        showToast("GAME RESUMED");
-      }
-    }
-    lastPaused = paused;
-  }
-
-  currentPaused = !!(paused && isActivePhase);
-  updatePopoutPaused(currentPaused);
-}
-
-// ---------------------------------------------------------------------------
-// NEXT ROUND
-// ---------------------------------------------------------------------------
-function nextRound() {
-  if (!gameCode) return;
-  send({ action: "next_round", game_code: gameCode });
-  showToast("ADVANCING TO NEXT ROUND…");
-}
-
-// ---------------------------------------------------------------------------
-// POP OUT
-// ---------------------------------------------------------------------------
-function popOutTerminals() {
-  const w = 1080, h = 760;
-  const left = (screen.width/2) - (w/2);
-  const top = (screen.height/2) - (h/2);
-  const logoUrl = new URL("mes_logo.png", location.href).href;
-
-  popoutWindow = window.open("", "SpellingBee_LiveTerminals", `width=${w},height=${h},top=${top},left=${left},resizable=yes,scrollbars=yes,status=no`);
-
-  if (popoutWindow) {
-    popoutWindow.document.write(`
-      <!DOCTYPE html>
-      <html class="h-full">
-      <head>
-        <title>PUBLIC STAGE BROADCAST - SPELLING BEE</title>
-        <script src="https://cdn.tailwindcss.com"><\/script>
-        <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=JetBrains+Mono:wght@700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-        <script>
-          tailwind.config = {
-            theme: {
-              extend: {
-                fontFamily: {
-                  sans: ['Plus Jakarta Sans', 'sans-serif'],
-                  heading: ['Fredoka', 'sans-serif'],
-                  mono: ['JetBrains Mono', 'monospace'],
-                },
-                colors: {
-                  school: {
-                    orange: '#fa8424',
-                    'orange-light': '#fef3ea',
-                    'orange-border': '#fcd2b2',
-                    blue: '#1c1b9d',
-                    'blue-dark': '#131273',
-                    'blue-border': '#b8b7e8',
-                    'blue-soft': '#f0f0fb'
-                  }
-                }
-              }
-            }
-          }
-        <\/script>
-        <style>
-          body {
-            background-color: #fffcf8;
-            color: #1e293b;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-image: radial-gradient(#fa8424 0.75px, transparent 0.75px), radial-gradient(#1c1b9d 0.75px, #fffcf8 0.75px);
-            background-size: 30px 30px;
-            background-position: 0 0, 15px 15px;
-          }
-          .school-card { background: #ffffff; border: 2px solid #fcd2b2; border-radius: 1rem; box-shadow: 0 4px 16px rgba(28, 27, 157, 0.08); }
-          .recessed-orange { background: #fef3ea; border: 1.5px solid #fcd2b2; border-radius: 0.75rem; }
-          .terminal-box { background-color: #0f172a; border: 1.5px solid #1e293b; border-radius: 0.65rem; color: #38bdf8; font-family: 'JetBrains Mono', monospace; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); }
-          .terminal-cursor { display: inline-block; width: 10px; height: 18px; background-color: #38bdf8; margin-left: 2px; animation: blink 1s infinite; vertical-align: middle; }
-          @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-          .player-avatar { width: 34px; height: 34px; border-radius: 0.6rem; border: 2px solid #b8b7e8; object-fit: cover; background: #f0f0fb; flex-shrink: 0; }
-          .player-avatar-xl { width: 56px; height: 56px; border-radius: 0.9rem; border-width: 3px; }
-          .champion-glow { box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.35), 0 10px 30px rgba(251, 191, 36, 0.35); }
-          @keyframes popIn { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
-          .pop-in { animation: popIn 0.45s ease both; }
-          #popout-timer-ring { transition: stroke-dashoffset 1s linear, stroke 0.3s ease; }
-          @keyframes timerPulse { from { transform: scale(1); } to { transform: scale(1.08); } }
-          .timer-critical { animation: timerPulse 0.5s ease-in-out infinite alternate; }
-        </style>
-      </head>
-      <body class="p-4 sm:p-6 min-h-screen flex flex-col justify-between">
-        <div id="popout-paused" class="${currentPaused ? '' : 'hidden'} fixed inset-0 z-50 bg-school-blue-dark/80 flex flex-col items-center justify-center text-center">
-          <div class="w-28 h-28 rounded-3xl bg-amber-400 text-school-blue-dark flex items-center justify-center text-6xl shadow-2xl mb-5">
-            <i class="bi bi-pause-fill"></i>
-          </div>
-          <h2 class="text-5xl font-bold font-heading uppercase tracking-widest text-white">GAME PAUSED</h2>
-          <p class="text-amber-300 font-mono font-bold mt-3 tracking-wider">Please wait for the teacher to resume…</p>
-        </div>
-
-        <header class="bg-school-blue text-white rounded-2xl px-5 py-3 flex items-center justify-between gap-4 shadow-lg border-b-4 border-school-blue-dark mb-4">
-          <div class="flex items-center gap-4 min-w-0">
-            <div class="w-16 h-16 rounded-2xl bg-white p-2 flex items-center justify-center shadow-md shrink-0 border border-school-blue-border overflow-hidden">
-              <img src="${logoUrl}" alt="MES Logo" class="w-full h-full object-contain"
-                   onerror="this.style.display='none'; document.getElementById('popout-logo-fallback').classList.remove('hidden');" />
-              <div id="popout-logo-fallback" class="hidden text-school-orange text-3xl flex items-center justify-center">
-                <i class="bi bi-award-fill"></i>
-              </div>
-            </div>
-            <div class="min-w-0">
-              <h1 class="text-xl sm:text-2xl font-bold font-heading uppercase tracking-wide text-white leading-tight truncate">MATERA MATIBAY SPELLING BEE</h1>
-              <p class="text-xs text-amber-300 font-mono tracking-wider font-bold">PUBLIC STAGE STREAM BROADCAST</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3 shrink-0">
-            <div class="bg-school-blue-dark px-4 py-2 rounded-xl flex items-center gap-3 border border-school-blue-border/40">
-              <div class="relative w-16 h-16 flex items-center justify-center">
-                <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
-                  <path stroke="rgba(184,183,232,0.3)" stroke-width="4" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  <path id="popout-timer-ring" stroke="#38bdf8" stroke-dasharray="100, 100" stroke-dashoffset="100" stroke-linecap="round" stroke-width="4" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                </svg>
-                <span id="popout-timer-num" class="absolute font-mono font-extrabold text-2xl text-sky-300">--</span>
-              </div>
-              <div class="flex flex-col text-left">
-                <span class="text-[9px] font-mono uppercase text-school-blue-border leading-none tracking-widest">TIMER</span>
-                <span id="popout-timer-label" class="font-mono font-bold text-sky-300 text-sm leading-tight uppercase tracking-wider mt-1">WAITING</span>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <section id="popout-word-banner" class="recessed-orange p-4 rounded-2xl mb-4 text-center border-2 border-school-orange-border shadow-sm">
-          <span id="popout-banner-label" class="text-[10px] font-bold uppercase font-sans tracking-widest text-school-orange block">SPELLING BEE IN PROGRESS</span>
-          <div id="popout-target-word" class="text-3xl sm:text-5xl font-extrabold font-mono text-school-blue tracking-widest uppercase my-1">••••••••</div>
-          <span id="popout-banner-sub" class="text-xs text-slate-500 font-sans italic">Listen carefully to the teacher and spell the target word!</span>
-        </section>
-
-        <main id="popout-terminals-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
-          <div class="col-span-full flex items-center justify-center text-slate-400 font-sans text-sm italic py-16">
-            Awaiting active round streaming transmission...
-          </div>
-        </main>
-
-        <section id="popout-standings" class="hidden flex-1 min-h-0 flex flex-col gap-4">
-          <div class="text-center">
-            <div class="w-20 h-20 rounded-3xl bg-amber-400 text-white flex items-center justify-center mx-auto text-5xl shadow-lg mb-2">
-              <i class="bi bi-trophy-fill"></i>
-            </div>
-            <h2 class="text-3xl sm:text-4xl font-bold font-heading uppercase tracking-widest text-school-blue">FINAL CHAMPIONSHIP STANDINGS</h2>
-            <p id="popout-champion-line" class="text-sm font-mono font-bold text-school-orange tracking-wider mt-1"></p>
-            <p id="popout-tie-note" class="text-xs text-slate-500 mt-1 hidden">Tied players share the same rank</p>
-          </div>
-          <ol id="popout-ranking" class="flex-1 min-h-0 overflow-y-auto space-y-3 list-none p-0 pr-1"></ol>
-        </section>
-      </body>
-      </html>
-    `);
-    popoutWindow.document.close();
-
-    setTimeout(() => {
-      updatePopoutWord(currentTargetWord, currentPhase);
-      renderPopoutView(lastState);
-    }, 150);
-  }
-}
-
-function updatePopoutPaused(paused) {
-  if (popoutWindow && !popoutWindow.closed) {
-    const el = popoutWindow.document.getElementById("popout-paused");
-    if (el) {
-      if (paused) el.classList.remove("hidden");
-      else el.classList.add("hidden");
-    }
-  }
-}
-
-function updatePopoutWord(word, phase) {
-  currentTargetWord = word || "";
-  currentPhase = phase || "lobby";
-  if (popoutWindow && !popoutWindow.closed) {
-    const wordEl = popoutWindow.document.getElementById("popout-target-word");
-    const labelEl = popoutWindow.document.getElementById("popout-banner-label");
-    const subEl = popoutWindow.document.getElementById("popout-banner-sub");
-    const revealAnswer = (phase === 'round_result' || phase === 'game_over');
-
-    if (wordEl) {
-      if (revealAnswer && currentTargetWord) {
-        wordEl.textContent = currentTargetWord.toUpperCase();
-        wordEl.className = "text-3xl sm:text-5xl font-extrabold font-mono text-emerald-600 tracking-widest uppercase my-1";
-      } else {
-        wordEl.textContent = "••••••••";
-        wordEl.className = "text-3xl sm:text-5xl font-extrabold font-mono text-school-blue tracking-widest uppercase my-1";
-      }
-    }
-    if (labelEl) labelEl.textContent = revealAnswer ? "CORRECT TARGET WORD" : "SPELLING BEE IN PROGRESS";
-    if (subEl) subEl.textContent = revealAnswer ? "Official word spelling verified" : "Listen carefully to the teacher and spell the target word!";
-  }
-}
-
-function updatePopoutTimer(s, doc) {
-  const numEl = doc.getElementById("popout-timer-num");
-  const ringEl = doc.getElementById("popout-timer-ring");
-  const labelEl = doc.getElementById("popout-timer-label");
-  if (!numEl || !ringEl || !labelEl) return;
-
-  const max = s.timer_seconds || 20;
-  let text = "--", label = "WAITING", color = "#38bdf8", pct = 0, critical = false;
-
-  if (s.phase === "playing") {
-    const t = Number(s.time_left);
-    label = "TIME LEFT";
-    if (!isNaN(t)) {
-      text = String(t);
-      pct = Math.max(0, Math.min(1, t / max));
-      color = pct < 0.25 ? "#f43f5e" : (pct < 0.5 ? "#f59e0b" : "#38bdf8");
-      critical = pct < 0.25 && !s.paused;
-    }
-    if (s.paused) { label = "PAUSED"; color = "#94a3b8"; }
-  }
-  else if (s.phase === "countdown") {
-    text = "GO"; label = "GET READY"; pct = 1; color = "#fbbf24";
-  }
-  else if (s.phase === "round_result") {
-    text = "0"; label = "TIME'S UP"; pct = 0; color = "#34d399";
-  }
-  else if (s.phase === "game_over") {
-    text = "END"; label = "MATCH OVER"; pct = 0; color = "#fbbf24";
-  }
-
-  numEl.textContent = text;
-  numEl.style.color = color;
-  numEl.style.fontSize = text.length > 2 ? "1.05rem" : "";
-  numEl.classList.toggle("timer-critical", critical);
-  labelEl.style.color = color;
-  ringEl.setAttribute("stroke", color);
-  ringEl.style.strokeDashoffset = String(100 - pct * 100);
-}
-
-function popoutScoreBadge(score) {
-  return `<span class="text-sm font-mono font-black text-school-orange bg-school-orange-light border border-school-orange-border px-3 py-1 rounded-lg whitespace-nowrap">${esc(score)} PTS</span>`;
-}
-
-function renderPopoutView(s) {
-  if (!s || !popoutWindow || popoutWindow.closed) return;
-  const doc = popoutWindow.document;
-
-  updatePopoutTimer(s, doc);
-
-  const banner = doc.getElementById("popout-word-banner");
-  const grid = doc.getElementById("popout-terminals-grid");
-  const standings = doc.getElementById("popout-standings");
-  if (!banner || !grid || !standings) return;
-
-  const entries = Object.entries(s.players || {});
-
-  if (s.phase === "game_over") {
-    banner.classList.add("hidden");
-    grid.classList.add("hidden");
-    standings.classList.remove("hidden");
-
-    const ranked = buildRankedList(s.ranking || []);
-    const hasTies = ranked.some(e => e.tied);
-    const champLine = doc.getElementById("popout-champion-line");
-    const tieNote = doc.getElementById("popout-tie-note");
-    if (tieNote) {
-      if (hasTies) tieNote.classList.remove("hidden");
-      else tieNote.classList.add("hidden");
-    }
-
-    if (champLine) {
-      const top = ranked.filter(e => e.rank === 1);
-      if (top.length === 1) {
-        champLine.textContent = `CHAMPION: ${String(top[0].name || "").toUpperCase()}  •  ${top[0].score} PTS`;
-      } else if (top.length > 1) {
-        champLine.textContent = `CO-CHAMPIONS: ${top.map(t => String(t.name || "").toUpperCase()).join(" & ")}  •  ${top[0].score} PTS`;
-      } else {
-        champLine.textContent = "";
-      }
-    }
-
-    const rankStyles = {
-      1: { row: "bg-amber-50 border-amber-400 champion-glow", badge: "bg-amber-400 text-white", name: "text-3xl", score: "text-4xl" },
-      2: { row: "bg-slate-50 border-slate-300", badge: "bg-slate-300 text-slate-700", name: "text-2xl", score: "text-3xl" },
-      3: { row: "bg-orange-50 border-orange-300", badge: "bg-amber-600 text-white", name: "text-2xl", score: "text-3xl" },
+function buildSafePublicPayload(state) {
+  if (!state) return null;
+  const safePlayers = {};
+  Object.entries(state.players || {}).forEach(([pid, p]) => {
+    safePlayers[pid] = {
+      name: p.name,
+      score: p.score,
+      answered: !!p.answered,
+      avatar: p.avatar || null,
+      live_input: p.live_input || ""
     };
+  });
 
-    doc.getElementById("popout-ranking").innerHTML = ranked.map((e, i) => {
-      const st = rankStyles[e.rank] || { row: "bg-white border-school-orange-border", badge: "bg-school-blue-soft border border-school-blue-border text-school-blue", name: "text-xl", score: "text-2xl" };
-      const badgeInner = e.rank === 1 ? '<i class="bi bi-trophy-fill"></i>' : e.rank;
-      const tieBadge = e.tied
-        ? '<span class="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-md ml-2">TIE</span>'
-        : '';
-      const avatar = e.avatar ? `<img class="player-avatar player-avatar-xl" src="${esc(e.avatar)}" alt="" />` : "";
-      return `
-        <li class="pop-in flex items-center justify-between gap-4 rounded-2xl border-2 px-5 py-4 ${st.row}" style="animation-delay:${i * 0.08}s">
-          <div class="flex items-center gap-4 min-w-0">
-            <div class="w-14 h-14 rounded-2xl ${st.badge} flex items-center justify-center font-heading font-bold text-2xl shrink-0 shadow-sm">${badgeInner}</div>
-            ${avatar}
-            <div class="min-w-0 flex items-center">
-              <span class="${st.name} font-extrabold font-heading text-school-blue uppercase tracking-wide truncate">${esc(e.name)}</span>
-              ${tieBadge}
-            </div>
-          </div>
-          <div class="text-right shrink-0">
-            <span class="${st.score} font-black font-mono text-school-orange">${esc(e.score)}</span>
-            <span class="text-xs font-mono font-bold text-slate-500 ml-1">PTS</span>
-          </div>
-        </li>`;
-    }).join("") || '<li class="text-center text-slate-400 italic py-10">No players.</li>';
+  return {
+    phase: state.phase,
+    paused: !!state.paused,
+    current_round: state.current_round,
+    total_rounds: state.total_rounds,
+    time_left: state.time_left,
+    definition: state.definition || "",
+    first_letter: state.first_letter || "",
+    letter_count: state.letter_count || 0,
+    // NEVER send state.word! Only include correct_word after round ends in round_result
+    correct_word: state.phase === "round_result" ? (state.correct_word || "") : "",
+    players: safePlayers,
+    last_results: state.last_results || {},
+    ranking: state.ranking || []
+  };
+}
+
+function pushToPopout(state) {
+  const payload = buildSafePublicPayload(state || lastState);
+  if (!payload) return;
+  if (broadcastChannel) {
+    broadcastChannel.postMessage({ type: "public_state", payload });
+  }
+  if (popoutWindow && !popoutWindow.closed && typeof popoutWindow.renderPublicState === "function") {
+    popoutWindow.renderPublicState(payload);
+  }
+}
+
+function popOutTerminals() {
+  if (popoutWindow && !popoutWindow.closed) {
+    popoutWindow.focus();
+    pushToPopout(lastState);
     return;
   }
 
-  banner.classList.remove("hidden");
-  grid.classList.remove("hidden");
-  standings.classList.add("hidden");
+  popoutWindow = window.open("", "SpellingBeePublicBroadcast", "width=1200,height=780");
+  if (!popoutWindow) {
+    showToast("POP-UP BLOCKED! ALLOW POP-UPS FOR THIS SITE.");
+    return;
+  }
 
-  if (s.phase === "playing") {
-    grid.innerHTML = entries.map(([pid, p]) => `
-      <div class="school-card p-4 flex flex-col gap-3">
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center gap-3 min-w-0">
-            <img class="player-avatar" src="${esc(p.avatar || '')}" alt="" />
-            <span class="text-sm font-extrabold font-heading text-school-blue uppercase tracking-wide truncate">${esc(p.name)}</span>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            ${popoutScoreBadge(p.score)}
-            ${p.answered
-              ? '<span class="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-300">SUBMITTED</span>'
-              : '<span class="text-[10px] font-mono font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md border border-amber-300">SPELLING...</span>'}
-          </div>
-        </div>
-        <div class="terminal-box p-3 text-lg flex items-center justify-between">
-          <div class="truncate flex items-center">
-            <span class="text-slate-500 mr-2">&gt;</span>
-            <span id="popout-term-${esc(pid)}" class="text-sky-300 font-black uppercase tracking-widest">${esc(p.live_input || '')}</span>
-            <span class="terminal-cursor"></span>
-          </div>
-        </div>
+  const doc = popoutWindow.document;
+  doc.open();
+  doc.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spelling Bee – Public Projector Broadcast</title>
+<script src="https://cdn.tailwindcss.com"><\/script>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; }
+  .font-heading { font-family: 'Fredoka', sans-serif; }
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
+</style>
+</head>
+<body class="min-h-screen flex flex-col p-6 gap-5">
+  <header class="bg-indigo-950 border-2 border-indigo-700 rounded-2xl px-6 py-4 flex items-center justify-between shadow-xl">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-amber-400 text-indigo-950 flex items-center justify-center text-2xl font-bold">
+        <i class="bi bi-broadcast"></i>
       </div>
-    `).join("") || '<div class="col-span-full text-center text-slate-400 italic py-16">No players connected.</div>';
-  }
-  else if (s.phase === "round_result") {
-    const res = s.last_results || {};
-    const rows = Object.entries(res).sort((a, b) => (b[1].score || 0) - (a[1].score || 0));
-    grid.innerHTML = rows.map(([pid, r]) => `
-      <div class="school-card p-4 flex flex-col gap-3 ${r.correct ? '!border-emerald-300' : '!border-rose-300'}">
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center gap-3 min-w-0">
-            <img class="player-avatar" src="${esc(r.avatar || '')}" alt="" />
-            <span class="text-sm font-extrabold font-heading text-school-blue uppercase tracking-wide truncate">${esc(r.name)}</span>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            ${popoutScoreBadge(r.score)}
-            ${r.correct
-              ? '<span class="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-300"><i class="bi bi-check-circle-fill"></i> CORRECT +1</span>'
-              : '<span class="text-[10px] font-mono font-bold text-rose-700 bg-rose-100 px-2.5 py-1 rounded-md border border-rose-300"><i class="bi bi-x-circle-fill"></i> WRONG</span>'}
-          </div>
-        </div>
-        <div class="terminal-box p-3 text-lg truncate">
-          <span class="text-slate-500 mr-2">&gt;</span>
-          <span class="${r.correct ? 'text-emerald-400' : 'text-rose-400'} font-black uppercase tracking-widest">${esc(r.answer || '(NO ANSWER)')}</span>
-        </div>
+      <div>
+        <h1 class="text-2xl font-heading font-bold uppercase tracking-wide text-white">MaterA Matibay Spelling Bee</h1>
+        <p class="text-xs text-amber-300 font-mono uppercase">LIVE PUBLIC STAGE DISPLAY</p>
       </div>
-    `).join("") || '<div class="col-span-full text-center text-slate-400 italic py-16">No submissions.</div>';
+    </div>
+    <div class="flex items-center gap-4">
+      <span id="pub-round" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 font-mono font-bold text-amber-400 text-lg">ROUND - / -</span>
+      <span id="pub-timer" class="px-5 py-2 rounded-xl bg-amber-500 text-indigo-950 font-mono font-extrabold text-2xl">--s</span>
+    </div>
+  </header>
+
+  <div id="pub-paused" class="hidden bg-amber-400 text-indigo-950 text-center py-3 rounded-xl font-heading font-bold text-xl uppercase tracking-widest">
+    <i class="bi bi-pause-circle-fill mr-2"></i> GAME PAUSED BY TEACHER
+  </div>
+
+  <section class="bg-slate-900 border-2 border-indigo-500/50 rounded-2xl p-6 shadow-lg space-y-4">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-mono font-bold uppercase tracking-widest text-amber-400">
+        <i class="bi bi-lightbulb-fill mr-1"></i> WORD DEFINITION & CLUES
+      </span>
+      <div class="flex items-center gap-3 font-mono text-sm">
+        <span class="px-3 py-1 rounded-lg bg-indigo-950 border border-indigo-700 text-cyan-300">STARTS WITH: <strong id="pub-first" class="text-white">-</strong></span>
+        <span class="px-3 py-1 rounded-lg bg-indigo-950 border border-indigo-700 text-cyan-300">LENGTH: <strong id="pub-len" class="text-white">-</strong> LETTERS</span>
+      </div>
+    </div>
+    <p id="pub-def" class="text-2xl sm:text-3xl font-semibold text-white leading-snug">Waiting for round to begin...</p>
+    <div id="pub-reveal-box" class="hidden pt-3 border-t border-slate-800">
+      <span class="text-xs font-mono uppercase text-emerald-400 block">CORRECT SPELLING:</span>
+      <span id="pub-correct" class="text-4xl font-mono font-extrabold tracking-widest text-emerald-300 uppercase"></span>
+    </div>
+  </section>
+
+  <section class="flex-1 flex flex-col gap-3">
+    <h2 class="text-sm font-heading font-bold uppercase tracking-wider text-slate-300">
+      <i class="bi bi-terminal-fill text-amber-400 mr-1.5"></i> LIVE CONTESTANT TERMINALS
+    </h2>
+    <div id="pub-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  </section>
+
+<script>
+  function esc(t) {
+    return String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   }
-  else if (s.phase === "countdown") {
-    grid.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center text-school-blue font-heading font-bold text-3xl uppercase tracking-widest py-16 gap-3">
-      <i class="bi bi-hourglass-split text-school-orange text-5xl"></i> GET READY…
-    </div>`;
+  window.renderPublicState = function(s) {
+    if (!s) return;
+    document.getElementById("pub-round").textContent = s.current_round > 0 ? ("ROUND " + s.current_round + " / " + s.total_rounds) : "LOBBY";
+    document.getElementById("pub-timer").textContent = (typeof s.time_left === "number" ? s.time_left + "s" : "--");
+    document.getElementById("pub-paused").classList.toggle("hidden", !s.paused);
+
+    if (s.phase === "playing" || s.phase === "countdown" || s.phase === "round_result") {
+      document.getElementById("pub-def").textContent = s.definition || "Get ready...";
+      document.getElementById("pub-first").textContent = s.first_letter || "?";
+      document.getElementById("pub-len").textContent = s.letter_count || "?";
+    } else if (s.phase === "game_over") {
+      document.getElementById("pub-def").textContent = "Competition Concluded! Final Standings Below.";
+      document.getElementById("pub-first").textContent = "-";
+      document.getElementById("pub-len").textContent = "-";
+    } else {
+      document.getElementById("pub-def").textContent = "Waiting for instructor to start the round...";
+      document.getElementById("pub-first").textContent = "-";
+      document.getElementById("pub-len").textContent = "-";
+    }
+
+    const revealBox = document.getElementById("pub-reveal-box");
+    if (s.phase === "round_result" && s.correct_word) {
+      revealBox.classList.remove("hidden");
+      document.getElementById("pub-correct").textContent = s.correct_word;
+    } else {
+      revealBox.classList.add("hidden");
+      document.getElementById("pub-correct").textContent = "";
+    }
+
+    const grid = document.getElementById("pub-grid");
+    if (s.phase === "game_over" && Array.isArray(s.ranking)) {
+      grid.innerHTML = s.ranking.map((r, idx) => \`
+        <div class="bg-slate-900 border-2 border-amber-400/60 rounded-2xl p-4 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl font-heading font-bold text-amber-400">#\${idx + 1}</span>
+            <span class="text-lg font-bold text-white">\${esc(r.name)}</span>
+          </div>
+          <span class="font-mono font-extrabold text-amber-300 text-lg">\${r.score} PTS</span>
+        </div>\`).join("");
+      return;
+    }
+
+    const entries = Object.entries(s.players || {});
+    grid.innerHTML = entries.map(([pid, p]) => {
+      const res = s.last_results?.[pid];
+      const text = s.phase === "round_result" && res ? res.answer : (p.live_input || "");
+      const statusBadge = p.answered
+        ? '<span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">LOCKED</span>'
+        : '<span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40">TYPING</span>';
+      return \`
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-4 flex flex-col gap-2.5 shadow-md">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5 min-w-0">
+              \${p.avatar ? \`<img src="\${esc(p.avatar)}" class="w-8 h-8 rounded-lg bg-slate-800" />\` : ""}
+              <span class="font-bold text-white truncate">\${esc(p.name)}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-xs font-bold text-amber-400">\${p.score} PTS</span>
+              \${statusBadge}
+            </div>
+          </div>
+          <div class="bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 font-mono text-lg text-sky-300 min-h-[2.75rem] flex items-center">
+            <span>\${esc(text)}</span>
+          </div>
+        </div>\`;
+    }).join("");
+  };
+
+  if ('BroadcastChannel' in window) {
+    const ch = new BroadcastChannel('spelling_bee_live_stream');
+    ch.onmessage = (ev) => {
+      if (ev.data?.type === 'public_state') window.renderPublicState(ev.data.payload);
+    };
   }
-  else {
-    grid.innerHTML = `<div class="col-span-full flex items-center justify-center text-slate-400 font-sans text-sm italic py-16">
-      Waiting for the match to start… ${entries.length} player${entries.length === 1 ? '' : 's'} connected.
-    </div>`;
-  }
+<\/script>
+</body>
+</html>`);
+  doc.close();
+  setTimeout(() => pushToPopout(lastState), 80);
 }
 
-function broadcastTypingUpdate(playerId, playerName, text) {
-  if (popoutWindow && !popoutWindow.closed) {
-    const termEl = popoutWindow.document.getElementById(`popout-term-${playerId}`);
-    if (termEl) termEl.textContent = text || "";
-  }
-  if (broadcastChannel) {
-    broadcastChannel.postMessage({ type: 'typing', playerId, text, targetWord: currentTargetWord });
-  }
-}
-
+// ---------------------------------------------------------------------------
+// WEBSOCKET & TEACHER CONTROLS
+// ---------------------------------------------------------------------------
 function connect() {
   ws = new WebSocket(WS_URL);
   ws.onopen = () => {
     $("conn-status").textContent = "ONLINE";
-    $("conn-status").className = "font-mono font-bold text-amber-300 text-[11px] leading-tight uppercase tracking-wider";
     $("conn-dot").className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400";
-    $("conn-dot-ping").className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75";
-    if (reconnectTimer) { clearInterval(reconnectTimer); reconnectTimer = null; }
+    $("conn-dot-ping").className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+    if (reconnectTimer) {
+      clearInterval(reconnectTimer);
+      reconnectTimer = null;
+    }
+    if (gameCode) {
+      send({ action: "get_game_state", game_code: gameCode });
+    }
   };
   ws.onclose = () => {
-    $("conn-status").textContent = "DISCONNECTED";
-    $("conn-status").className = "font-mono font-bold text-rose-300 text-[11px] leading-tight uppercase tracking-wider";
-    $("conn-dot").className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-400";
-    $("conn-dot-ping").className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-300 opacity-75";
+    $("conn-status").textContent = "OFFLINE";
+    $("conn-dot").className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500";
+    $("conn-dot-ping").className = "hidden";
     if (!reconnectTimer) reconnectTimer = setInterval(connect, 2000);
   };
   ws.onerror = () => ws.close();
@@ -1276,233 +1104,211 @@ function send(obj) {
   if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj));
 }
 
+function togglePause() {
+  if (!gameCode) return;
+  send({ action: "toggle_pause", game_code: gameCode });
+}
+
+function nextRound() {
+  if (!gameCode) return;
+  send({ action: "next_round", game_code: gameCode });
+}
+
 function handle(msg) {
   if (msg.type === "game_created") {
     gameCode = msg.game_code;
     $("game-code").textContent = gameCode;
-    show("control-panel");
+    startBgAudio();
     renderState(msg.game_state);
-    showToast("ROOM SESSION CREATED!");
-  }
-  else if (msg.type === "game_state") {
+  } else if (msg.type === "game_state") {
     renderState(msg.game_state);
-  }
-  else if (msg.type === "student_typing_update") {
-    const termTextEl = document.getElementById(`live-terminal-${msg.player_id}`);
-    if (termTextEl) {
-      termTextEl.textContent = msg.current_input || "";
+  } else if (msg.type === "word_bank_updated") {
+    const label = msg.mode === "append" ? "APPENDED" : "IMPORTED";
+    showToast(`${label} CSV — ${msg.total} WORDS IN BANK`);
+  } else if (msg.type === "student_typing_update") {
+    if (lastState && lastState.players && lastState.players[msg.player_id]) {
+      lastState.players[msg.player_id].live_input = msg.current_input;
+      renderLiveTerminals(lastState);
+      pushToPopout(lastState);
     }
-    broadcastTypingUpdate(msg.player_id, msg.player_name, msg.current_input);
-  }
-  else if (msg.type === "error") {
+  } else if (msg.type === "error") {
     $("control-msg").textContent = msg.message;
+    showToast(msg.message.toUpperCase());
   }
 }
 
-function updateTimerRing(secondsLeft) {
-  const ring = document.getElementById("timer-ring");
-  if (!ring) return;
-  const max = parseInt($("timer").value, 10) || 20;
-  const num = parseInt(secondsLeft, 10);
-  if (isNaN(num)) {
-    ring.style.strokeDashoffset = 0;
+function renderLiveTerminals(s) {
+  const container = $("live-answers");
+  if (!container) return;
+  const players = Object.entries(s.players || {});
+  if (!players.length) {
+    container.innerHTML = `<p class="text-xs text-slate-400 italic col-span-full text-center py-6">No active student terminals connected.</p>`;
     return;
   }
-  const pct = Math.max(0, Math.min(1, num / max));
-  const offset = 100 - (pct * 100);
-  ring.style.strokeDashoffset = offset;
-  if (pct < 0.25) {
-    ring.setAttribute("class", "timer-ring-circle text-rose-500");
-  } else if (pct < 0.5) {
-    ring.setAttribute("class", "timer-ring-circle text-amber-500");
-  } else {
-    ring.setAttribute("class", "timer-ring-circle text-school-orange");
-  }
+
+  container.innerHTML = players.map(([pid, p]) => {
+    const status = p.answered
+      ? `<span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">SUBMITTED</span>`
+      : `<span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-sky-100 text-sky-700 border border-sky-300">TYPING...</span>`;
+    return `
+      <div class="bg-white border-2 border-school-blue-border/70 rounded-xl p-2.5 flex flex-col gap-1.5 shadow-sm">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 min-w-0">
+            ${avatarImg(p.avatar)}
+            <span class="font-bold text-xs text-school-blue truncate">${esc(p.name)}</span>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            ${status}
+            <button type="button" onclick="requestRemovePlayer('${esc(pid)}', '${esc(p.name)}')" class="btn-remove" title="Remove student">
+              <i class="bi bi-x-lg text-xs"></i>
+            </button>
+          </div>
+        </div>
+        <div class="terminal-box px-3 py-2 text-xs min-h-[2.25rem] flex items-center justify-between">
+          <span class="truncate">${esc(p.live_input || "")}<span class="terminal-cursor"></span></span>
+          <span class="text-[10px] text-slate-400 ml-2">${(p.live_input || "").length}</span>
+        </div>
+      </div>`;
+  }).join("");
 }
 
 function renderState(s) {
   if (!s) return;
   lastState = s;
+  currentPhase = s.phase;
+  currentPaused = !!s.paused;
 
-  if (s.phase !== lastPhase) {
-    if (s.phase === "playing") playSound('start');
-    if (s.phase === "game_over") playSound('over');
+  if (lastPhase !== s.phase) {
+    if (s.phase === "playing") playSound("start");
+    else if (s.phase === "game_over") playSound("over");
     lastPhase = s.phase;
   }
+  if (lastPaused !== currentPaused) {
+    playSound(currentPaused ? "pause" : "resume");
+    if (currentPaused) bgAudio.pause();
+    else if (audioEnabled) bgAudio.play().catch(() => {});
+    lastPaused = currentPaused;
+  }
 
-  updatePausedUI(s.phase, !!s.paused);
+  document.body.classList.toggle("is-paused", currentPaused);
+  $("paused-banner").classList.toggle("hidden", !currentPaused);
 
-  const players = Object.values(s.players || {});
+  const inActiveMatch = ["countdown", "playing", "round_result"].includes(s.phase);
+  const pauseBtn = $("btn-pause");
+  const headerStopBtn = $("btn-header-stop");
+  if (inActiveMatch) {
+    pauseBtn.classList.remove("hidden");
+    pauseBtn.classList.add("flex");
+    headerStopBtn.classList.remove("hidden");
+    headerStopBtn.classList.add("flex");
+  } else {
+    pauseBtn.classList.add("hidden");
+    pauseBtn.classList.remove("flex");
+    headerStopBtn.classList.add("hidden");
+    headerStopBtn.classList.remove("flex");
+  }
+
+  $("pause-icon").className = currentPaused ? "bi bi-play-fill text-white text-base" : "bi bi-pause-fill text-white text-base";
+  $("pause-label").textContent = currentPaused ? "RESUME" : "PAUSE";
+  if ($("game-pause-icon")) {
+    $("game-pause-icon").className = currentPaused ? "bi bi-play-fill" : "bi bi-pause-fill";
+    $("game-pause-label").textContent = currentPaused ? "RESUME" : "PAUSE";
+  }
+
+  // Connected Terminals Roster (with Remove button)
   const playerEntries = Object.entries(s.players || {});
-  $("player-count").textContent = players.length;
-
-  // Connected terminals — remove button always available
-  $("player-list").innerHTML = playerEntries.map(([pid, p]) => `
-  <div class="recessed-blue p-2.5 rounded-xl flex items-center justify-between shadow-sm gap-2">
-      <div class="flex items-center gap-2.5 min-w-0 flex-1">
-        ${avatarImg(p.avatar)}
-        <span class="text-xs font-bold text-school-blue font-sans truncate">${esc(p.name)}</span>
-      </div>
-      <div class="flex items-center gap-1.5 font-mono shrink-0">
-        <span class="text-xs font-bold text-school-orange">${p.score} PTS</span>
-        ${p.answered
-          ? '<span class="text-emerald-600 text-[10px] bg-emerald-100 px-2 py-0.5 rounded-md font-sans font-bold border border-emerald-200"><i class="bi bi-check-lg"></i></span>'
-          : '<span class="text-slate-400 text-[10px] bg-white px-2 py-0.5 rounded-md border border-slate-200"><i class="bi bi-hourglass-split"></i></span>'}
-        <button type="button"
-                class="btn-remove"
-                title="Remove ${esc(p.name)}"
-                data-pid="${pid}"
-                data-name="${esc(p.name)}"
-                onclick="removePlayer(this.dataset.pid, this.dataset.name)">
-          <i class="bi bi-trash3 text-sm"></i>
-        </button>
-      </div>
-    </div>
-  `).join("") || '<p class="msg text-xs text-slate-400 font-sans text-center py-8 italic">Awaiting active student terminals...</p>';
-
-  if (s.word_list && s.word_list.length) {
-    $("words-panel").classList.remove("hidden");
-    $("word-list").innerHTML = s.word_list.map((w, i) => `
-      <div class="recessed-orange p-2.5 rounded-xl space-y-1">
-        <div class="flex items-center gap-1.5">
-          <span class="w font-mono font-bold text-school-blue text-xs">${i + 1}. ${esc(w.word.toUpperCase())}</span>
+  $("player-count").textContent = playerEntries.length;
+  if (!playerEntries.length) {
+    $("player-list").innerHTML = `<p class="msg text-xs text-slate-400 font-sans text-center py-8 italic">Awaiting active student terminals...</p>`;
+  } else {
+    $("player-list").innerHTML = playerEntries.map(([pid, p]) => `
+      <div class="flex items-center justify-between recessed-blue px-3 py-2 rounded-xl gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          ${avatarImg(p.avatar)}
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-school-blue truncate">${esc(p.name)}</p>
+            <p class="text-[10px] font-mono text-slate-500">ID: ${esc(pid)}</p>
+          </div>
         </div>
-        <div class="text-slate-600 text-[11px] italic leading-snug">${esc(w.definition)}</div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="text-xs font-mono font-extrabold text-school-orange">${p.score} PTS</span>
+          <button type="button" onclick="requestRemovePlayer('${esc(pid)}', '${esc(p.name)}')" class="btn-remove" title="Remove ${esc(p.name)}">
+            <i class="bi bi-person-x-fill text-xs"></i>
+          </button>
+        </div>
       </div>
     `).join("");
   }
 
+  // Word Bank List
+  const wb = s.word_list || [];
+  $("word-bank-badge").textContent = s.word_bank_count ?? wb.length;
+  $("word-list").innerHTML = wb.map((item, idx) => `
+    <div class="recessed-orange px-3 py-2 rounded-xl flex flex-col gap-0.5">
+      <div class="flex items-center justify-between">
+        <span class="font-mono font-extrabold text-school-blue uppercase">${idx + 1}. ${esc(item.word)}</span>
+        <span class="text-[10px] font-mono text-slate-500">${item.word.length} letters</span>
+      </div>
+      <p class="text-[11px] text-slate-600 italic">${esc(item.definition)}</p>
+    </div>
+  `).join("");
+
   if (s.phase === "lobby") {
-    show("control-panel", s.word_list ? "words-panel" : null);
-    $("btn-start").disabled = false;
+    show("control-panel", "words-panel");
+    $("btn-start").disabled = playerEntries.length === 0;
     $("btn-reset").classList.add("hidden");
-    $("control-msg").textContent = "";
-    updatePopoutWord("", s.phase);
-  }
-  else if (s.phase === "countdown") {
-    show("game-panel");
-    $("time-left").textContent = "--";
-    updateTimerRing(0);
-    $("btn-start").disabled = true;
-    updatePopoutWord(s.word || "", s.phase);
-  }
-  else if (s.phase === "playing") {
+    $("rounds").value = s.num_rounds;
+    $("timer").value = s.timer_seconds;
+  } else if (s.phase === "countdown" || s.phase === "playing") {
     show("game-panel", "words-panel");
     $("round-num").textContent = s.current_round;
     $("total-rounds").textContent = s.total_rounds;
-
-    const remainingSec = s.time_left ?? "--";
-    $("time-left").textContent = remainingSec;
-    updateTimerRing(remainingSec);
-    $("countdown-label").textContent = s.paused ? "PAUSED" : "COUNTDOWN";
-
-    const wordText = (s.word || "").toUpperCase();
-    $("teacher-word").textContent = wordText;
+    $("teacher-word").textContent = s.word || "---";
     $("teacher-def").textContent = s.definition || "";
-    $("first-letter").textContent = s.first_letter || "";
-    $("letter-count").textContent = s.letter_count || "";
+    $("first-letter").textContent = s.first_letter || "-";
+    $("letter-count").textContent = `${s.letter_count || 0} LETTERS`;
 
-    updatePopoutWord(wordText, s.phase);
+    const tl = typeof s.time_left === "number" ? s.time_left : "--";
+    $("time-left").textContent = s.phase === "countdown" ? "GO" : tl;
+    const total = s.timer_seconds || 20;
+    const pct = typeof tl === "number" ? Math.max(0, Math.min(100, (tl / total) * 100)) : 100;
+    $("timer-ring").style.strokeDashoffset = 100 - pct;
 
-    $("live-answers").innerHTML = playerEntries.map(([pid, p]) => `
-      <div class="recessed-orange p-3 rounded-xl flex flex-col gap-2 font-sans shadow-sm border border-school-orange-border/80">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2 min-w-0">
-            ${avatarImg(p.avatar)}
-            <span class="text-xs font-extrabold text-school-blue truncate">${esc(p.name)}</span>
-          </div>
-          ${p.answered
-            ? '<span class="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300 flex items-center gap-1 shrink-0"><i class="bi bi-check-circle-fill"></i> LOCKED</span>'
-            : (s.paused
-                ? '<span class="text-[9px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-300 flex items-center gap-1 shrink-0"><i class="bi bi-pause-fill"></i> PAUSED</span>'
-                : '<span class="text-[9px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300 flex items-center gap-1 shrink-0"><i class="bi bi-pencil-fill animate-pulse"></i> TYPING</span>')}
-        </div>
-        <div class="terminal-box px-3 py-2 flex items-center justify-between text-xs font-mono">
-          <div class="truncate flex items-center">
-            <span class="text-slate-500 mr-1.5 select-none">&gt;</span>
-            <span id="live-terminal-${pid}" class="text-sky-300 font-bold uppercase tracking-wider">${esc(p.live_input || "")}</span>
-            <span class="terminal-cursor"></span>
-          </div>
-          <span class="text-[8px] text-slate-500 uppercase tracking-widest font-sans ml-2 shrink-0">RAW FEED</span>
-        </div>
-      </div>
-    `).join("");
-    $("btn-start").disabled = true;
-  }
-  else if (s.phase === "round_result") {
+    renderLiveTerminals(s);
+  } else if (s.phase === "round_result") {
     show("result-panel", "words-panel");
-    $("correct-word").textContent = (s.correct_word || "").toUpperCase();
-    updatePopoutWord(s.correct_word || "", s.phase);
-
-    const res = s.last_results || {};
-    $("result-list").innerHTML = Object.values(res).map(r => `
-      <div class="p-2.5 rounded-xl border text-xs ${r.correct ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50'} flex items-center justify-between font-sans shadow-sm">
+    $("correct-word").textContent = s.correct_word || "---";
+    $("next-round-label").textContent = s.current_round >= s.total_rounds ? "FINISH MATCH & VIEW PODIUM" : "NEXT ROUND";
+    const results = Object.entries(s.last_results || {});
+    $("result-list").innerHTML = results.map(([pid, r]) => `
+      <div class="flex items-center justify-between p-2.5 rounded-xl border ${r.correct ? "bg-emerald-50 border-emerald-300" : "bg-rose-50 border-rose-300"}">
         <div class="flex items-center gap-2 min-w-0">
           ${avatarImg(r.avatar)}
-          <i class="bi ${r.correct ? 'bi-check-circle-fill text-emerald-600' : 'bi-x-circle-fill text-rose-500'} text-sm shrink-0"></i>
-          <span class="font-bold text-school-blue shrink-0">${esc(r.name)}:</span>
-          <span class="${r.correct ? 'text-emerald-800 font-bold' : 'text-rose-700 font-semibold'} truncate">"${esc(r.answer || '(NO RESPONSE)')}"</span>
+          <span class="font-bold text-xs text-school-blue truncate">${esc(r.name)}</span>
+          <span class="font-mono text-xs text-slate-700">"${esc(r.answer)}"</span>
         </div>
-        <span class="font-bold text-school-orange font-mono shrink-0 ml-2">${r.score} PTS</span>
+        <span class="font-mono font-extrabold text-xs ${r.correct ? "text-emerald-700" : "text-rose-600"}">
+          ${r.correct ? "CORRECT" : "WRONG"} (${r.score} PTS)
+        </span>
       </div>
     `).join("");
-
-    const nextLabel = $("next-round-label");
-    const isLastRound = (s.current_round || 0) >= (s.total_rounds || 1);
-    if (nextLabel) nextLabel.textContent = isLastRound ? "FINISH MATCH" : "NEXT ROUND";
-  }
-  else if (s.phase === "game_over") {
+  } else if (s.phase === "game_over") {
     show("control-panel", "over-panel", "words-panel");
     $("btn-reset").classList.remove("hidden");
-    $("btn-start").disabled = true;
-
-    updatePopoutWord(s.correct_word || "", s.phase);
-
-    const ranked = buildRankedList(s.ranking || []);
-    const hasTies = ranked.some(e => e.tied);
-    const tieNote = $("tie-note");
-    if (tieNote) {
-      if (hasTies) tieNote.classList.remove("hidden");
-      else tieNote.classList.add("hidden");
-    }
-
-    const getRankBadge = (rank, tied) => {
-      if (rank === 1) {
-        return `<div class="w-7 h-7 rounded-lg bg-amber-400 text-white flex items-center justify-center font-bold text-xs shadow-sm" title="${tied ? 'Tied for 1st' : '1st'}">
-          <i class="bi bi-trophy-fill"></i>
-        </div>`;
-      }
-      if (rank === 2) {
-        return `<div class="w-7 h-7 rounded-lg bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs shadow-sm">${rank}</div>`;
-      }
-      if (rank === 3) {
-        return `<div class="w-7 h-7 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">${rank}</div>`;
-      }
-      return `<div class="w-7 h-7 rounded-lg bg-school-blue-soft border border-school-blue-border text-school-blue flex items-center justify-center font-bold text-xs">${rank}</div>`;
-    };
-
-    $("ranking").innerHTML = ranked.map((entry) => {
-      const name = entry.name ?? "???";
-      const score = entry.score ?? 0;
-      const avatar = entry.avatar ?? null;
-      const tieLabel = entry.tied
-        ? '<span class="text-[9px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded ml-1.5">TIE</span>'
-        : '';
-      return `
-        <li class="flex justify-between items-center bg-white border border-school-orange-border p-3 rounded-xl shadow-sm gap-2">
-          <div class="flex items-center gap-2.5 min-w-0">
-            ${getRankBadge(entry.rank, entry.tied)}
-            ${avatarImg(avatar, "player-avatar-lg")}
-            <span class="font-bold text-school-blue text-sm truncate">${esc(name)}</span>
-            ${tieLabel}
-          </div>
-          <span class="text-school-orange font-black font-mono text-sm shrink-0">${score} PTS</span>
-        </li>
-      `;
-    }).join("") || '<li class="text-center text-slate-400 italic py-6">No players.</li>';
+    const ranking = s.ranking || [];
+    $("ranking").innerHTML = ranking.map((entry, idx) => `
+      <li class="flex items-center justify-between recessed-orange p-3 rounded-xl">
+        <div class="flex items-center gap-3">
+          <span class="w-7 h-7 rounded-lg bg-school-blue text-white font-mono font-bold text-xs flex items-center justify-center">${idx + 1}</span>
+          ${avatarImg(entry.avatar)}
+          <span class="font-bold text-sm text-school-blue">${esc(entry.name)}</span>
+        </div>
+        <span class="font-mono font-extrabold text-sm text-school-orange">${entry.score} PTS</span>
+      </li>
+    `).join("");
   }
 
-  renderPopoutView(s);
+  pushToPopout(s);
 }
 
 $("btn-create").onclick = () => {
@@ -1511,20 +1317,29 @@ $("btn-create").onclick = () => {
 };
 
 $("btn-config").onclick = () => {
-  const r = parseInt($("rounds").value, 10);
-  const t = parseInt($("timer").value, 10);
-  send({ action: "set_config", game_code: gameCode, rounds: r, timer: t });
-  showToast("CONFIG UPDATED!");
+  if (!gameCode) return;
+  const rounds = parseInt($("rounds").value, 10);
+  const timer = parseInt($("timer").value, 10);
+  send({ action: "set_config", game_code: gameCode, rounds, timer });
+  showToast("MATCH CONFIGURATION APPLIED");
 };
 
 $("btn-start").onclick = () => {
+  if (!gameCode) return;
   startBgAudio();
   send({ action: "start_game", game_code: gameCode });
 };
 
 $("btn-reset").onclick = () => {
-  requestStopMatch(); // also uses the nice modal
+  requestStopMatch();
 };
+
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space" && document.activeElement.tagName !== "INPUT" && ["countdown", "playing", "round_result"].includes(currentPhase)) {
+    e.preventDefault();
+    togglePause();
+  }
+});
 
 connect();
 </script>

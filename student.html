@@ -4,9 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Spelling Bee – Student Kiosk</title>
-<!-- Tailwind CSS via CDN -->
 <script src="https://cdn.tailwindcss.com"></script>
-<!-- Fonts & Icons -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
@@ -138,22 +136,6 @@
     opacity: 0.6;
     cursor: not-allowed;
   }
-  .btn-school-blue {
-    background-color: #1c1b9d;
-    color: #ffffff;
-    border-bottom: 4px solid #131273;
-    font-family: 'Fredoka', sans-serif;
-    font-weight: 600;
-    transition: all 0.1s ease;
-  }
-  .btn-school-blue:hover:not(:disabled) {
-    background-color: #2726b8;
-    transform: translateY(-1px);
-  }
-  .btn-school-blue:active:not(:disabled) {
-    transform: translateY(3px);
-    border-bottom-width: 1px;
-  }
   .kiosk-input {
     background: #ffffff;
     border: 2px solid #fcd2b2;
@@ -205,10 +187,6 @@
     object-fit: cover;
     transition: border-color 0.2s, box-shadow 0.2s;
   }
-  .avatar-preview:hover {
-    border-color: #fa8424;
-    box-shadow: 0 0 0 4px rgba(250, 132, 36, 0.15);
-  }
   .style-chip {
     font-size: 9px;
     font-weight: 700;
@@ -221,11 +199,6 @@
     color: #1c1b9d;
     cursor: pointer;
     transition: all 0.15s ease;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-  }
-  .style-chip:hover {
-    border-color: #fa8424;
-    background: #fef3ea;
   }
   .style-chip.active {
     background: #fa8424;
@@ -246,27 +219,17 @@
     height: 32px;
     border-radius: 0.5rem;
   }
-
-  /* Paused overlay */
   #paused-overlay {
     background: rgba(19, 18, 115, 0.88);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
   }
-  .pause-icon-bounce {
-    animation: pauseBounce 1.4s ease-in-out infinite;
-  }
-  @keyframes pauseBounce {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.08); }
-  }
 </style>
 </head>
 <body class="safe-padding flex flex-col items-center justify-center min-h-screen min-h-[100dvh] w-full">
 
-  <!-- PAUSED OVERLAY (covers everything while teacher has paused the game) -->
   <div id="paused-overlay" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center text-center p-6">
-    <div class="pause-icon-bounce w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-amber-400 text-school-blue-dark flex items-center justify-center text-6xl shadow-2xl mb-5 border-b-4 border-amber-600">
+    <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-amber-400 text-school-blue-dark flex items-center justify-center text-6xl shadow-2xl mb-5 border-b-4 border-amber-600">
       <i class="bi bi-pause-fill"></i>
     </div>
     <h2 class="text-3xl sm:text-5xl font-bold font-heading uppercase tracking-widest text-white">GAME PAUSED</h2>
@@ -276,7 +239,6 @@
     <p class="text-school-blue-border font-sans text-[11px] sm:text-xs mt-2">Your timer is stopped and your typed answer is safe.</p>
   </div>
 
-  <!-- TOP BRANDING / HEADER BAR -->
   <header class="w-full max-w-xl mb-3 flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-school-blue text-white rounded-2xl shadow-school-md border-b-4 border-school-blue-dark">
     <div class="flex items-center gap-2.5 min-w-0">
       <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-md shrink-0 border border-school-blue-border">
@@ -298,7 +260,6 @@
     </div>
   </header>
 
-  <!-- MAIN KIOSK CONTAINER -->
   <main class="w-full max-w-xl flex-1 flex flex-col justify-center">
 
     <!-- 1. JOIN SCREEN -->
@@ -311,8 +272,12 @@
         <span class="text-[9px] sm:text-[10px] font-mono font-bold uppercase bg-white/10 px-2 py-0.5 sm:py-1 rounded-md text-school-blue-border shrink-0">STATUS: READY</span>
       </div>
 
+      <div id="kicked-banner" class="hidden bg-rose-50 border-2 border-rose-300 text-rose-800 p-3 rounded-xl text-xs font-bold flex items-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill text-rose-600 text-base shrink-0"></i>
+        <span id="kicked-text">You were removed from the session by the teacher.</span>
+      </div>
+
       <div class="space-y-3 sm:space-y-4 pt-1">
-        <!-- Avatar Picker -->
         <div class="recessed-blue p-3 sm:p-4 rounded-xl">
           <label class="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-school-blue font-sans mb-2 sm:mb-3 text-center">
             Select Your Avatar
@@ -481,7 +446,7 @@
   </main>
 
 <script>
-const WS_URL = `ws://${location.hostname}:8001`;
+const WS_URL = `ws://${location.hostname || 'localhost'}:8001`;
 const DICEBEAR_STYLES = [
   "avataaars", "bottts", "lorelei", "notionists",
   "adventurer", "big-smile", "fun-emoji", "thumbs",
@@ -497,7 +462,6 @@ let reconnectTimer = null;
 let currentPhase = null;
 let isPaused = false;
 
-// Avatar state
 let selectedStyle = "avataaars";
 let avatarSeed = "Student";
 
@@ -563,6 +527,22 @@ function randomSeed() {
   refreshAvatarPreview();
 }
 
+function resetToJoinScreen(reasonText = "") {
+  playerId = null;
+  gameCode = null;
+  currentPhase = null;
+  isPaused = false;
+  $("paused-overlay").classList.add("hidden");
+  $("answer").value = "";
+  show("join");
+
+  if (reasonText) {
+    $("kicked-text").textContent = reasonText;
+    $("kicked-banner").classList.remove("hidden");
+    $("join-msg").textContent = reasonText;
+  }
+}
+
 function connect() {
   ws = new WebSocket(WS_URL);
   ws.onopen = () => {
@@ -583,6 +563,8 @@ function send(obj) {
 
 function handle(msg) {
   if (msg.type === "joined") {
+    $("kicked-banner").classList.add("hidden");
+    $("join-msg").textContent = "";
     playerId = msg.player_id;
     const me = msg.game_state?.players?.[playerId];
     if (me?.avatar) {
@@ -594,11 +576,18 @@ function handle(msg) {
     $("lobby-code").textContent = gameCode;
     renderState(msg.game_state);
   }
+  else if (msg.type === "kicked") {
+    resetToJoinScreen(msg.message || "You were removed from the session by the teacher.");
+  }
   else if (msg.type === "game_state") {
+    // Also detect removal if our playerId is no longer present in the room's active players
+    if (playerId && msg.game_state && msg.game_state.players && !msg.game_state.players[playerId]) {
+      resetToJoinScreen("You were removed from the session by the teacher.");
+      return;
+    }
     renderState(msg.game_state);
   }
   else if (msg.type === "error") {
-    // "Game is paused" is expected if someone submits at the instant of a pause; don't treat it as a join error
     if (msg.message === "Game is paused") return;
     $("join-msg").textContent = msg.message;
   }
@@ -633,38 +622,27 @@ function avatarImg(url, extraClass = "") {
   return `<img class="player-avatar ${extraClass}" src="${url}" alt="" onerror="this.style.display='none'" />`;
 }
 
-// ---------------------------------------------------------------------------
-// PAUSE HANDLING
-// ---------------------------------------------------------------------------
 function applyPausedState(phase, paused) {
   const active = ["countdown", "playing", "round_result"].includes(phase);
   const nowPaused = !!(paused && active);
   isPaused = nowPaused;
 
   $("paused-overlay").classList.toggle("hidden", !nowPaused);
-
-  // Freeze the answer box
   const input = $("answer");
   const btn = $("btn-answer");
   input.disabled = nowPaused;
   btn.disabled = nowPaused;
-
-  // Timer label
   $("timer-label").textContent = nowPaused ? "TIMER PAUSED" : "REMAINING ALLOCATED TIME";
 
-  // Stop the "next round" spinner while paused
   const spinner = $("next-round-spinner");
   if (spinner) spinner.classList.toggle("animate-spin", !nowPaused);
 
-  if (nowPaused) {
-    input.blur();
-  }
+  if (nowPaused) input.blur();
 }
 
 function renderState(s) {
   if (!s) return;
 
-  // Auto-clear input text on round transitions
   if (currentPhase !== s.phase) {
     if (s.phase === "playing" || s.phase === "countdown") {
       $("answer").value = "";
@@ -672,10 +650,8 @@ function renderState(s) {
     currentPhase = s.phase;
   }
 
-  // Apply paused / resumed UI first
   applyPausedState(s.phase, !!s.paused);
 
-  // Lobby player list with avatars
   const players = Object.values(s.players || {});
   $("player-list").innerHTML = players.map(p =>
     `<div class="flex justify-between items-center recessed-blue p-2 sm:p-2.5 rounded-xl text-xs font-sans shadow-sm gap-2">
@@ -687,7 +663,6 @@ function renderState(s) {
     </div>`
   ).join("");
 
-  // Keep my avatar updated
   if (playerId && s.players?.[playerId]?.avatar) {
     myAvatarUrl = s.players[playerId].avatar;
     $("my-avatar").src = myAvatarUrl;
@@ -718,7 +693,6 @@ function renderState(s) {
     } else {
       $("answer-box").classList.remove("hidden");
       $("answered-msg").classList.add("hidden");
-      // Don't steal focus while paused; refocus once resumed
       if (!s.paused) $("answer").focus();
     }
   }
@@ -757,79 +731,65 @@ function renderState(s) {
       const avatar = entry.avatar ?? null;
       return `<li class="flex justify-between items-center bg-white border border-school-orange-border p-2.5 sm:p-3 rounded-xl shadow-sm my-1 gap-2">
         <span class="flex items-center gap-2 text-school-blue min-w-0">
-          <span class="text-sm sm:text-base shrink-0">${getRankBadge(i)}</span>
-          ${avatarImg(avatar, "player-avatar-lg")}
-          <span class="truncate">${name}</span>
+          <span class="text-base">${getRankBadge(i)}</span>
+          ${avatarImg(avatar)}
+          <span class="truncate font-bold">${name}</span>
         </span>
-        <span class="text-school-orange font-black font-mono shrink-0">${score} PTS</span>
+        <span class="text-school-orange font-mono font-extrabold shrink-0">${score} PTS</span>
       </li>`;
     }).join("");
   }
 }
 
-// --- Event listeners ---
 $("btn-join").onclick = () => {
-  myName = $("name").value.trim();
-  gameCode = $("code").value.trim().toUpperCase();
-  if (!myName) { $("join-msg").textContent = "ENTER YOUR NAME"; return; }
-  if (!gameCode) { $("join-msg").textContent = "ENTER THE GAME CODE"; return; }
-
-  const seed = avatarSeed || myName;
-
+  const nameVal = $("name").value.trim();
+  const codeVal = $("code").value.trim().toUpperCase();
+  if (!nameVal || !codeVal) {
+    $("join-msg").textContent = "Please enter both your name and room code.";
+    return;
+  }
+  myName = nameVal;
+  gameCode = codeVal;
+  $("join-msg").textContent = "";
   send({
     action: "join_game",
     game_code: gameCode,
     player_name: myName,
     avatar_style: selectedStyle,
-    avatar_seed: seed,
+    avatar_seed: avatarSeed || myName
   });
 };
 
-$("btn-answer").onclick = () => {
-  if (isPaused) return;   // blocked while the teacher has paused
-  const answer = $("answer").value.trim();
-  if (!answer) return;
-  send({
-    action: "submit_answer",
-    game_code: gameCode,
-    player_id: playerId,
-    answer: answer,
-  });
-  $("answer").value = "";
-};
+$("btn-random-seed").onclick = randomSeed;
+$("name").addEventListener("input", refreshAvatarPreview);
 
-// LIVE TYPING STREAMING: Transmit current text as user types
-$("answer").addEventListener("input", (e) => {
+$("answer").addEventListener("input", () => {
   if (!gameCode || !playerId || isPaused) return;
   send({
     action: "live_typing",
     game_code: gameCode,
     player_id: playerId,
-    current_input: e.target.value
+    current_input: $("answer").value
   });
 });
 
-$("answer").addEventListener("keydown", e => {
-  if (e.key === "Enter" && !isPaused) $("btn-answer").click();
-});
-
-["name","code"].forEach(id => {
-  $(id).addEventListener("keydown", e => {
-    if (e.key === "Enter") $("btn-join").click();
-  });
-});
-
-$("name").addEventListener("input", () => {
-  const val = $("name").value.trim();
-  if (avatarSeed === "Student" || avatarSeed === val.slice(0, -1) || !avatarSeed) {
-    avatarSeed = val || "Student";
+$("answer").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    $("btn-answer").click();
   }
-  refreshAvatarPreview();
 });
 
-$("btn-random-seed").onclick = randomSeed;
+$("btn-answer").onclick = () => {
+  if (!gameCode || !playerId || isPaused) return;
+  send({
+    action: "submit_answer",
+    game_code: gameCode,
+    player_id: playerId,
+    answer: $("answer").value.trim()
+  });
+};
 
-// Init
 initStyleChips();
 refreshAvatarPreview();
 connect();
