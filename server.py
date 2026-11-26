@@ -10,28 +10,7 @@ import websockets
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-DEFAULT_WORDS = [
-    {
-        "word": "simultaneous",
-        "definition": "(Adjective) Existing or occurring at the same time; exactly coincident. Ex: Sports delivers passionate engagement and the _____ viewership advertisers prize.",
-    },
-    {
-        "word": "dyscalculia",
-        "definition": "(Noun) Impairment of mathematical ability due to an organic condition of the brain. Ex: Experts say students with _____ need extra time to complete their work.",
-    },
-    {
-        "word": "malfeasance",
-        "definition": "(Noun) Conduct by a public official that violates the public trust or is against the law. Ex: The city council removed the mayor from office because of his _____.",
-    },
-    {
-        "word": "magniloquent",
-        "definition": "(Adjective) Speaking in or characterized by a high-flown, often bombastic style or manner. Ex: He spoke in a _____ manner, drawing attention to himself during the debate.",
-    },
-    {
-        "word": "idiosyncrasy",
-        "definition": "(Noun) A tendency, habit, or mannerism that is peculiar to an individual; a quirk. Ex: Her worst _____ involved repeating back every word that was said to her.",
-    },
-]
+DEFAULT_WORDS = []
 
 DICEBEAR_STYLES = {
     "avataaars",
