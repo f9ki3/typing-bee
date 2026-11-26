@@ -344,6 +344,11 @@
         </div>
       </div>
 
+      <div class="recessed-orange px-3 py-2 rounded-xl flex items-center justify-between text-xs gap-2">
+        <span id="lobby-round-title" class="font-heading font-bold uppercase text-school-blue truncate">STANDARD ROUND</span>
+        <span id="lobby-points-badge" class="font-mono font-extrabold text-school-orange shrink-0">+1 PT EACH</span>
+      </div>
+
       <div>
         <h3 class="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-school-blue font-heading mb-2 flex items-center justify-between">
           <span>Active Contestants</span>
@@ -361,11 +366,14 @@
 
     <!-- 3. PLAYING SCREEN -->
     <div id="playing" class="school-card p-3.5 sm:p-6 space-y-3.5 sm:space-y-4 hidden border-t-4 border-t-school-orange">
-      <div class="flex justify-between items-center recessed-orange px-3 sm:px-4 py-2 rounded-xl">
-        <span class="text-[11px] sm:text-xs font-bold font-heading tracking-widest text-school-orange uppercase flex items-center gap-1.5">
-          <i class="bi bi-controller"></i> SPELLING ROUND
-        </span>
-        <div class="text-[11px] sm:text-xs font-mono font-bold text-school-blue">
+      <div class="flex justify-between items-center recessed-orange px-3 sm:px-4 py-2 rounded-xl gap-2 flex-wrap">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-[11px] sm:text-xs font-bold font-heading tracking-widest text-school-orange uppercase flex items-center gap-1.5 truncate">
+            <i class="bi bi-controller shrink-0"></i> <span id="play-round-title" class="truncate">STANDARD ROUND</span>
+          </span>
+          <span id="play-points-badge" class="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">+1 PT</span>
+        </div>
+        <div class="text-[11px] sm:text-xs font-mono font-bold text-school-blue shrink-0">
           ROUND <span id="round-num" class="text-school-orange text-xs sm:text-sm font-black">--</span>
         </div>
       </div>
@@ -375,6 +383,14 @@
         <div class="timer timer-digit text-4xl sm:text-7xl md:text-8xl py-1 sm:py-2 my-0.5 sm:my-1 timer-normal" id="time-left">
           --
         </div>
+      </div>
+
+      <div id="ready-waiting-banner" class="hidden bg-amber-50 border-2 border-amber-300 text-amber-900 p-3 rounded-xl text-center space-y-1">
+        <p class="font-heading font-bold text-xs sm:text-sm uppercase tracking-wide flex items-center justify-center gap-1.5 text-school-blue">
+          <i class="bi bi-megaphone-fill text-school-orange"></i>
+          <span>LISTEN TO YOUR TEACHER'S INSTRUCTIONS</span>
+        </p>
+        <p class="text-[11px] text-amber-800">Your teacher is explaining the round and announcing the word. Countdown starts when they click Start Countdown.</p>
       </div>
 
       <div class="recessed-blue p-3 sm:p-4 rounded-xl space-y-1">
@@ -398,18 +414,18 @@
 
       <div id="answered-msg" class="msg hidden bg-emerald-50 border-2 border-emerald-300 text-emerald-800 p-3.5 sm:p-4 rounded-xl text-center font-bold font-sans text-xs sm:text-sm shadow-sm">
         <i class="bi bi-check-circle-fill text-emerald-600 text-base mr-1"></i>
-        <span>ANSWER LOCKED & TRANSMITTED – STAND BY FOR RESULTS</span>
+        <span>ANSWER LOCKED &amp; TRANSMITTED – STAND BY FOR RESULTS</span>
       </div>
     </div>
 
     <!-- 4. ROUND RESULT SCREEN -->
     <div id="result" class="school-card p-4 sm:p-6 space-y-3.5 sm:space-y-4 hidden border-t-4 border-t-emerald-500">
-      <div class="bg-school-blue text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-3.5 sm:p-4 rounded-t-xl flex justify-between items-center border-b-2 border-school-blue-dark">
-        <h2 class="text-xs sm:text-base font-bold font-heading tracking-wider flex items-center gap-2">
-          <i class="bi bi-clipboard-data text-amber-300 text-sm sm:text-base"></i>
-          ROUND DEBRIEF
+      <div class="bg-school-blue text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-3.5 sm:p-4 rounded-t-xl flex justify-between items-center gap-2 border-b-2 border-school-blue-dark">
+        <h2 class="text-xs sm:text-base font-bold font-heading tracking-wider flex items-center gap-2 truncate">
+          <i class="bi bi-clipboard-data text-amber-300 text-sm sm:text-base shrink-0"></i>
+          <span class="truncate">ROUND DEBRIEF</span>
         </h2>
-        <span class="text-[9px] sm:text-[10px] font-mono font-bold text-cyan-300 bg-cyan-900/40 px-2 py-0.5 sm:py-1 rounded-md border border-cyan-500/30 shrink-0">EVALUATION</span>
+        <span id="result-points-tag" class="text-[9px] sm:text-[10px] font-mono font-bold text-cyan-300 bg-cyan-900/40 px-2 py-0.5 sm:py-1 rounded-md border border-cyan-500/30 shrink-0">STANDARD ROUND • +1 PT EACH</span>
       </div>
       <div class="recessed-orange p-3 sm:p-4 rounded-xl text-center space-y-0.5">
         <span class="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-500 block">CORRECT SPELLING</span>
@@ -421,8 +437,27 @@
       </div>
       <div class="recessed-blue p-2.5 rounded-xl text-center">
         <p class="msg text-[11px] sm:text-xs font-bold font-sans text-school-blue uppercase my-0 flex items-center justify-center gap-1.5">
-          <i id="next-round-spinner" class="bi bi-arrow-repeat text-school-orange animate-spin inline-block"></i>
-          <span>NEXT ROUND INITIALIZING SHORTLY…</span>
+          <i id="next-round-spinner" class="bi bi-hourglass-split text-school-orange inline-block"></i>
+          <span>WAITING FOR TEACHER TO CONTINUE…</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- 4B. SCORES VIEW SCREEN -->
+    <div id="scores" class="school-card p-4 sm:p-6 space-y-3.5 sm:space-y-4 hidden border-t-4 border-t-school-blue">
+      <div class="bg-school-blue text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-3.5 sm:p-4 rounded-t-xl flex justify-between items-center gap-2 border-b-2 border-school-blue-dark">
+        <h2 class="text-xs sm:text-base font-bold font-heading tracking-wider flex items-center gap-2 truncate">
+          <i class="bi bi-bar-chart-fill text-amber-300 text-sm sm:text-base shrink-0"></i>
+          <span class="truncate">CURRENT STANDINGS</span>
+        </h2>
+        <span id="scores-round-tag" class="text-[9px] sm:text-[10px] font-mono font-bold text-amber-300 bg-white/10 px-2 py-0.5 sm:py-1 rounded-md shrink-0">ROUND --</span>
+      </div>
+      <div class="recessed-orange p-2.5 sm:p-3.5 rounded-xl">
+        <ol id="scores-list" class="custom-scroll max-h-48 sm:max-h-60 overflow-y-auto space-y-2 pr-1 text-xs sm:text-sm font-bold font-sans"></ol>
+      </div>
+      <div class="recessed-blue p-2.5 rounded-xl text-center">
+        <p class="msg text-[11px] sm:text-xs font-bold font-sans text-school-blue uppercase my-0">
+          TEACHER IS REVIEWING SCORES…
         </p>
       </div>
     </div>
@@ -467,8 +502,14 @@ let avatarSeed = "Student";
 
 const $ = id => document.getElementById(id);
 
+function esc(t) {
+  return String(t ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
 function show(id) {
-  ["join","lobby","playing","result","over"].forEach(s =>
+  ["join","lobby","playing","result","scores","over"].forEach(s =>
     $(s).classList.toggle("hidden", s !== id));
 }
 
@@ -580,7 +621,6 @@ function handle(msg) {
     resetToJoinScreen(msg.message || "You were removed from the session by the teacher.");
   }
   else if (msg.type === "game_state") {
-    // Also detect removal if our playerId is no longer present in the room's active players
     if (playerId && msg.game_state && msg.game_state.players && !msg.game_state.players[playerId]) {
       resetToJoinScreen("You were removed from the session by the teacher.");
       return;
@@ -619,32 +659,54 @@ function avatarImg(url, extraClass = "") {
   if (!url) {
     return `<div class="player-avatar ${extraClass} bg-school-blue text-white flex items-center justify-center font-bold text-[10px]">?</div>`;
   }
-  return `<img class="player-avatar ${extraClass}" src="${url}" alt="" onerror="this.style.display='none'" />`;
+  return `<img class="player-avatar ${extraClass}" src="${esc(url)}" alt="" onerror="this.style.display='none'" />`;
 }
 
 function applyPausedState(phase, paused) {
-  const active = ["countdown", "playing", "round_result"].includes(phase);
+  const active = ["round_ready", "countdown", "playing", "round_result"].includes(phase);
   const nowPaused = !!(paused && active);
   isPaused = nowPaused;
 
   $("paused-overlay").classList.toggle("hidden", !nowPaused);
   const input = $("answer");
   const btn = $("btn-answer");
-  input.disabled = nowPaused;
-  btn.disabled = nowPaused;
-  $("timer-label").textContent = nowPaused ? "TIMER PAUSED" : "REMAINING ALLOCATED TIME";
+  const canType = phase === "playing" && !nowPaused;
+  input.disabled = !canType;
+  btn.disabled = !canType;
+  $("timer-label").textContent = nowPaused
+    ? "TIMER PAUSED"
+    : (phase === "round_ready" ? "WAITING FOR TEACHER TO START COUNTDOWN" : "REMAINING ALLOCATED TIME");
 
-  const spinner = $("next-round-spinner");
-  if (spinner) spinner.classList.toggle("animate-spin", !nowPaused);
+  if (!canType) input.blur();
+}
 
-  if (nowPaused) input.blur();
+function renderRankingItems(ranking) {
+  const getRankBadge = (idx) => {
+    if (idx === 0) return '🥇';
+    if (idx === 1) return '🥈';
+    if (idx === 2) return '🥉';
+    return `${idx + 1}.`;
+  };
+  return (ranking || []).map((entry, i) => {
+    const name = entry.name ?? entry[0] ?? "???";
+    const score = entry.score ?? entry[1] ?? 0;
+    const avatar = entry.avatar ?? null;
+    return `<li class="flex justify-between items-center bg-white border border-school-orange-border p-2.5 sm:p-3 rounded-xl shadow-sm my-1 gap-2">
+      <span class="flex items-center gap-2 text-school-blue min-w-0">
+        <span class="text-base">${getRankBadge(i)}</span>
+        ${avatarImg(avatar)}
+        <span class="truncate font-bold">${esc(name)}</span>
+      </span>
+      <span class="text-school-orange font-mono font-extrabold shrink-0">${score} PTS</span>
+    </li>`;
+  }).join("");
 }
 
 function renderState(s) {
   if (!s) return;
 
   if (currentPhase !== s.phase) {
-    if (s.phase === "playing" || s.phase === "countdown") {
+    if (s.phase === "round_ready" || s.phase === "playing" || s.phase === "countdown") {
       $("answer").value = "";
     }
     currentPhase = s.phase;
@@ -652,12 +714,23 @@ function renderState(s) {
 
   applyPausedState(s.phase, !!s.paused);
 
+  const rTitle = (s.round_title || "Standard Round").toUpperCase();
+  const pts = s.points_per_correct || 1;
+  const ptBadge = pts === 1 ? "+1 PT EACH" : `+${pts} PTS EACH`;
+  const ptShort = pts === 1 ? "+1 PT" : `+${pts} PTS`;
+
+  $("lobby-round-title").textContent = rTitle;
+  $("lobby-points-badge").textContent = ptBadge;
+  $("play-round-title").textContent = rTitle;
+  $("play-points-badge").textContent = ptShort;
+  $("result-points-tag").textContent = `${rTitle} • ${ptBadge}`;
+
   const players = Object.values(s.players || {});
   $("player-list").innerHTML = players.map(p =>
     `<div class="flex justify-between items-center recessed-blue p-2 sm:p-2.5 rounded-xl text-xs font-sans shadow-sm gap-2">
       <div class="flex items-center gap-2 min-w-0">
         ${avatarImg(p.avatar)}
-        <span class="font-bold text-school-blue truncate">${p.name}</span>
+        <span class="font-bold text-school-blue truncate">${esc(p.name)}</span>
       </div>
       <span class="text-school-orange font-bold font-mono text-[11px] sm:text-xs shrink-0">${p.score} PTS</span>
     </div>`
@@ -671,10 +744,21 @@ function renderState(s) {
   if (s.phase === "lobby") {
     show("lobby");
   }
+  else if (s.phase === "round_ready") {
+    show("playing");
+    $("round-num").textContent = `${s.current_round} / ${s.total_rounds}`;
+    updateBulkyTimerDisplay("WAIT", !!s.paused);
+    $("ready-waiting-banner").classList.remove("hidden");
+    $("hint").textContent = `ROUND: ${rTitle} (${ptBadge})\nTEACHER BRIEFING IN PROGRESS — WAIT FOR START COUNTDOWN...`;
+    $("answer-box").classList.add("hidden");
+    $("answered-msg").classList.add("hidden");
+  }
   else if (s.phase === "countdown") {
     show("playing");
-    updateBulkyTimerDisplay("READY...", !!s.paused);
-    $("hint").textContent = "PREPARE FOR SPELLING TRANSMISSION...";
+    $("round-num").textContent = `${s.current_round} / ${s.total_rounds}`;
+    updateBulkyTimerDisplay(s.time_left ?? "READY...", !!s.paused);
+    $("ready-waiting-banner").classList.add("hidden");
+    $("hint").textContent = `ROUND: ${rTitle} (${ptBadge})\nPREPARE FOR SPELLING TRANSMISSION...`;
     $("answer-box").classList.add("hidden");
     $("answered-msg").classList.add("hidden");
   }
@@ -682,7 +766,9 @@ function renderState(s) {
     show("playing");
     $("round-num").textContent = `${s.current_round} / ${s.total_rounds}`;
     updateBulkyTimerDisplay(s.time_left, !!s.paused);
+    $("ready-waiting-banner").classList.add("hidden");
     $("hint").textContent =
+      `ROUND: ${rTitle} (${ptBadge})\n` +
       `DEFINITION: ${s.definition || ""}\n` +
       `FIRST LETTER: [ ${s.first_letter || "?"} ]    LENGTH: [ ${s.letter_count || "?"} LETTERS ]`;
     const me = Object.entries(s.players || {}).find(([id]) => id === playerId);
@@ -700,8 +786,10 @@ function renderState(s) {
     show("result");
     $("correct-word").textContent = (s.correct_word || "").toUpperCase();
     const res = s.last_results || {};
-    $("result-list").innerHTML = Object.values(res).map(r =>
-      `<div class="flex items-center justify-between p-2 sm:p-2.5 rounded-xl font-sans text-xs border shadow-sm gap-2 ${
+    $("result-list").innerHTML = Object.values(res).map(r => {
+      const gained = r.points_awarded ?? (r.correct ? pts : 0);
+      return `
+      <div class="flex items-center justify-between p-2 sm:p-2.5 rounded-xl font-sans text-xs border shadow-sm gap-2 ${
         r.correct
           ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
           : 'bg-rose-50 border-rose-300 text-rose-900'
@@ -709,35 +797,21 @@ function renderState(s) {
         <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
           ${avatarImg(r.avatar)}
           <i class="bi ${r.correct ? 'bi-check-circle-fill text-emerald-600' : 'bi-x-circle-fill text-rose-500'} text-xs sm:text-sm shrink-0"></i>
-          <span class="font-bold text-school-blue truncate">${r.name}:</span>
-          <span class="italic text-slate-700 truncate">"${r.answer || '(NO RESPONSE)'}"</span>
+          <span class="font-bold text-school-blue truncate">${esc(r.name)}:</span>
+          <span class="italic text-slate-700 truncate">"${esc(r.answer || '(NO RESPONSE)')}"</span>
         </div>
-        <span class="font-bold text-school-orange font-mono text-[11px] sm:text-xs shrink-0">+${r.score} PTS</span>
-      </div>`
-    ).join("");
+        <span class="font-bold text-school-orange font-mono text-[11px] sm:text-xs shrink-0">${r.correct ? `+${gained} PTS` : '0 PTS'} (${r.score})</span>
+      </div>`;
+    }).join("");
+  }
+  else if (s.phase === "scores_view") {
+    show("scores");
+    $("scores-round-tag").textContent = `ROUND ${s.current_round} / ${s.total_rounds}`;
+    $("scores-list").innerHTML = renderRankingItems(s.ranking || []);
   }
   else if (s.phase === "game_over") {
     show("over");
-    const getRankBadge = (idx) => {
-      if (idx === 0) return '🥇';
-      if (idx === 1) return '🥈';
-      if (idx === 2) return '🥉';
-      return `${idx + 1}.`;
-    };
-    const ranking = s.ranking || [];
-    $("ranking").innerHTML = ranking.map((entry, i) => {
-      const name = entry.name ?? entry[0] ?? "???";
-      const score = entry.score ?? entry[1] ?? 0;
-      const avatar = entry.avatar ?? null;
-      return `<li class="flex justify-between items-center bg-white border border-school-orange-border p-2.5 sm:p-3 rounded-xl shadow-sm my-1 gap-2">
-        <span class="flex items-center gap-2 text-school-blue min-w-0">
-          <span class="text-base">${getRankBadge(i)}</span>
-          ${avatarImg(avatar)}
-          <span class="truncate font-bold">${name}</span>
-        </span>
-        <span class="text-school-orange font-mono font-extrabold shrink-0">${score} PTS</span>
-      </li>`;
-    }).join("");
+    $("ranking").innerHTML = renderRankingItems(s.ranking || []);
   }
 }
 
@@ -764,7 +838,7 @@ $("btn-random-seed").onclick = randomSeed;
 $("name").addEventListener("input", refreshAvatarPreview);
 
 $("answer").addEventListener("input", () => {
-  if (!gameCode || !playerId || isPaused) return;
+  if (!gameCode || !playerId || isPaused || currentPhase !== "playing") return;
   send({
     action: "live_typing",
     game_code: gameCode,
@@ -781,7 +855,7 @@ $("answer").addEventListener("keydown", (e) => {
 });
 
 $("btn-answer").onclick = () => {
-  if (!gameCode || !playerId || isPaused) return;
+  if (!gameCode || !playerId || isPaused || currentPhase !== "playing") return;
   send({
     action: "submit_answer",
     game_code: gameCode,

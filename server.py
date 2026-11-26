@@ -1,623 +1,682 @@
-#!/usr/bin/env python3
-"""
-Spelling Bee Server
-A local network spelling competition for classrooms
-No authentication, no ads
-Requires: websockets  (pip install websockets)
-Uses: http.server + threading for static files
-
-Avatars powered by DiceBear API (https://api.dicebear.com)
-"""
 import asyncio
-import websockets
 import json
+import os
 import random
 import string
-from http.server import HTTPServer, SimpleHTTPRequestHandler
 import threading
-import os
-import time
-from urllib.parse import quote
-
-# ---------------------------------------------------------------------------
-# Default Word list (word, definition)
-# ---------------------------------------------------------------------------
-DEFAULT_WORD_LIST = []
-
-DICEBEAR_STYLES = [
-    "avataaars", "bottts", "lorelei", "notionists",
-    "adventurer", "big-smile", "fun-emoji", "thumbs",
-    "identicon", "shapes"
-]
+import urllib.parse
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+import websockets
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STUDENT_TXT_PATH = os.path.join(BASE_DIR, "student.txt")
 
-games = {}          # game_code -> Game
-connections = {}    # client_id -> websocket
+DEFAULT_WORDS = [
+    {
+        "word": "simultaneous",
+        "definition": "(Adjective) Existing or occurring at the same time; exactly coincident. Ex: Sports delivers passionate engagement and the _____ viewership advertisers prize.",
+    },
+    {
+        "word": "dyscalculia",
+        "definition": "(Noun) Impairment of mathematical ability due to an organic condition of the brain. Ex: Experts say students with _____ need extra time to complete their work.",
+    },
+    {
+        "word": "malfeasance",
+        "definition": "(Noun) Conduct by a public official that violates the public trust or is against the law. Ex: The city council removed the mayor from office because of his _____.",
+    },
+    {
+        "word": "magniloquent",
+        "definition": "(Adjective) Speaking in or characterized by a high-flown, often bombastic style or manner. Ex: He spoke in a _____ manner, drawing attention to himself during the debate.",
+    },
+    {
+        "word": "idiosyncrasy",
+        "definition": "(Noun) A tendency, habit, or mannerism that is peculiar to an individual; a quirk. Ex: Her worst _____ involved repeating back every word that was said to her.",
+    },
+]
+
+DICEBEAR_STYLES = {
+    "avataaars",
+    "bottts",
+    "lorelei",
+    "notionists",
+    "adventurer",
+    "big-smile",
+    "fun-emoji",
+    "thumbs",
+    "identicon",
+    "shapes",
+}
+
+GAMES = {}
+CLIENT_META = {}
 
 
-def sync_student_txt():
-    """Keep student.txt automatically synced with currently connected students."""
+def make_avatar_url(style: str | None, seed: str | None) -> str:
+    clean_style = (style or "avataaars").strip().lower()
+    if clean_style not in DICEBEAR_STYLES:
+        clean_style = "avataaars"
+    clean_seed = (seed or "player").strip() or "player"
+    return (
+        f"https://api.dicebear.com/9.x/{clean_style}/svg"
+        f"?seed={urllib.parse.quote(clean_seed)}&size=128"
+    )
+
+
+def generate_code(length: int = 6) -> str:
+    chars = string.ascii_uppercase + string.digits
+    while True:
+        code = "".join(random.choices(chars, k=length))
+        if code not in GAMES:
+            return code
+
+
+def normalize_round_title(raw_title) -> str:
+    if isinstance(raw_title, str):
+        cleaned = " ".join(raw_title.strip().split())
+        if cleaned:
+            return cleaned[:40]
+    return "Standard Round"
+
+
+def normalize_points_per_correct(raw_points) -> int:
     try:
-        lines = []
-        for code, game in games.items():
-            for pid, p in game.players.items():
-                lines.append(f"{code} | {pid} | {p['name']} | score={p['score']}")
-        with open(STUDENT_TXT_PATH, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines) + ("\n" if lines else ""))
-    except Exception as e:
-        print(f"Failed to sync student.txt: {e}")
-
-
-def make_avatar_url(style: str, seed: str) -> str:
-    style = style if style in DICEBEAR_STYLES else "avataaars"
-    seed = quote(seed or "player")
-    return f"https://api.dicebear.com/9.x/{style}/svg?seed={seed}&size=128"
-
-
-def normalize_code(raw) -> str:
-    return str(raw or "").strip().upper()
-
-
-def normalize_pid(raw) -> str:
-    return str(raw or "").strip()
+        pts = int(raw_points)
+    except (TypeError, ValueError):
+        return 1
+    return max(1, min(100, pts))
 
 
 class Game:
-    def __init__(self, game_id, teacher_websocket=None):
-        self.game_id = game_id
-        self.teacher_websocket = teacher_websocket
-        self.players = {}
+    def __init__(self, code: str):
+        self.code = code
+        self.host_ws = None
+        self.phase = "lobby"
+        self.previous_phase = "round_result"
+        self.paused = False
         self.num_rounds = 5
         self.timer_seconds = 20
-        self.word_bank = list(DEFAULT_WORD_LIST)  # [(word, definition), ...]
-        self.words = []                           # active match sample
+        self.round_title = "Standard Round"
+        self.points_per_correct = 1
+
+        self.players = {}
+        self.word_bank = [dict(w) for w in DEFAULT_WORDS]
+        self.round_words = []
         self.current_round = 0
-        self.phase = "lobby"
-        self.round_ends_at = 0
+        self.current_word_obj = None
+        self.time_left = 0
         self.last_results = {}
         self.ranking = []
-        self._round_task = None
-        self._stop_requested = False
-
-        self.paused = False
-        self.paused_remaining = 0.0
+        self.countdown_event = asyncio.Event()
         self.advance_event = asyncio.Event()
+        self.retry_event = asyncio.Event()
+        self.loop_task = None
 
-    def add_player(self, player_name, websocket, avatar_style="avataaars", avatar_seed=None):
-        player_id = "".join(random.choices(string.ascii_letters + string.digits, k=8))
-        seed = avatar_seed or player_name or player_id
-        avatar_url = make_avatar_url(avatar_style, seed)
+    def apply_config(self, data: dict):
+        if "rounds" in data:
+            try:
+                r = int(data["rounds"])
+                self.num_rounds = max(1, min(50, r))
+            except (TypeError, ValueError):
+                pass
 
-        self.players[player_id] = {
-            "name": player_name,
-            "websocket": websocket,
-            "score": 0,
-            "answered": False,
-            "last_answer": None,
-            "live_input": "",
-            "avatar": avatar_url,
-            "avatar_style": avatar_style,
-            "avatar_seed": seed,
-        }
-        sync_student_txt()
-        return player_id
+        if "timer" in data:
+            try:
+                t = int(data["timer"])
+                self.timer_seconds = max(5, min(180, t))
+            except (TypeError, ValueError):
+                pass
 
-    def remove_player(self, player_id):
-        player_id = normalize_pid(player_id)
-        if not player_id or player_id not in self.players:
-            return False, None, None
+        if "round_title" in data:
+            self.round_title = normalize_round_title(data["round_title"])
 
-        p = self.players.pop(player_id)
-        name = p.get("name", "???")
-        ws = p.get("websocket")
+        if "points_per_correct" in data:
+            self.points_per_correct = normalize_points_per_correct(
+                data["points_per_correct"]
+            )
 
-        if player_id in self.last_results:
-            del self.last_results[player_id]
-
-        sync_student_txt()
-        return True, name, ws
-
-    def set_config(self, rounds, timer):
-        if isinstance(rounds, int) and 1 <= rounds <= 50:
-            self.num_rounds = rounds
-        if isinstance(timer, int) and 5 <= timer <= 180:
-            self.timer_seconds = timer
-
-    def update_word_bank(self, entries, mode="replace"):
+    def update_word_bank(self, words: list[dict], mode: str = "replace") -> int:
         cleaned = []
-        seen = set()
-        if mode == "append":
-            for w, d in self.word_bank:
-                lw = w.strip().lower()
-                if lw and lw not in seen:
-                    seen.add(lw)
-                    cleaned.append((lw, d.strip()))
-
-        for item in entries:
+        for item in words or []:
             if not isinstance(item, dict):
                 continue
-            w = str(item.get("word") or "").strip().lower()
-            d = str(item.get("definition") or "").strip()
-            if w and d and w not in seen:
-                seen.add(w)
-                cleaned.append((w, d))
+            w = str(item.get("word", "")).strip()
+            d = str(item.get("definition", "")).strip()
+            if w and d:
+                cleaned.append({"word": w, "definition": d})
+        if not cleaned:
+            return len(self.word_bank)
 
-        if cleaned:
+        if mode == "append":
+            self.word_bank.extend(cleaned)
+        else:
             self.word_bank = cleaned
-            if self.num_rounds > len(self.word_bank):
-                self.num_rounds = len(self.word_bank)
         return len(self.word_bank)
 
-    def prepare_words(self):
-        pool = self.word_bank if self.word_bank else DEFAULT_WORD_LIST
-        count = min(self.num_rounds, len(pool))
-        self.words = random.sample(pool, count)
-        self.num_rounds = len(self.words)
+    def rollback_current_round_points(self):
+        if not self.last_results:
+            return
+        for pid, res in self.last_results.items():
+            awarded = int(res.get("points_awarded") or 0)
+            if awarded > 0 and pid in self.players:
+                self.players[pid]["score"] = max(
+                    0, self.players[pid]["score"] - awarded
+                )
+        self.last_results = {}
 
-    def can_pause(self):
-        return self.phase in ("countdown", "playing", "round_result") and not self.paused
-
-    def pause(self):
-        if not self.can_pause():
-            return False
-        if self.phase == "playing":
-            self.paused_remaining = max(0.0, self.round_ends_at - time.time())
-        self.paused = True
-        return True
-
-    def resume(self):
-        if not self.paused:
-            return False
-        if self.phase == "playing":
-            self.round_ends_at = time.time() + self.paused_remaining
+    def reset_to_lobby(self):
+        if self.loop_task and not self.loop_task.done():
+            self.loop_task.cancel()
+        self.loop_task = None
+        self.countdown_event.clear()
+        self.advance_event.clear()
+        self.retry_event.clear()
+        self.phase = "lobby"
+        self.previous_phase = "round_result"
         self.paused = False
-        return True
+        self.current_round = 0
+        self.current_word_obj = None
+        self.time_left = 0
+        self.last_results = {}
+        self.ranking = []
+        for p in self.players.values():
+            p["score"] = 0
+            p["answered"] = False
+            p["answer"] = ""
+            p["live_input"] = ""
 
-    def time_left(self):
-        if self.phase != "playing":
-            return self.timer_seconds
-        if self.paused:
-            return max(0, int(round(self.paused_remaining)))
-        return max(0, int(self.round_ends_at - time.time()))
-
-    def get_state(self, for_teacher=False):
-        players_public = {}
-        for pid, p in self.players.items():
-            player_info = {
+    def compute_ranking(self) -> list[dict]:
+        ranked = sorted(
+            self.players.values(),
+            key=lambda p: (-p.get("score", 0), p.get("name", "").lower()),
+        )
+        return [
+            {
                 "name": p["name"],
                 "score": p["score"],
-                "answered": p.get("answered", False),
                 "avatar": p.get("avatar"),
             }
-            if for_teacher:
-                player_info["live_input"] = p.get("live_input", "")
-            players_public[pid] = player_info
+            for p in ranked
+        ]
+
+    def get_state(self) -> dict:
+        word_str = self.current_word_obj["word"] if self.current_word_obj else ""
+        def_str = self.current_word_obj["definition"] if self.current_word_obj else ""
+        first_letter = word_str[0].upper() if word_str else ""
+        letter_count = len(word_str.replace(" ", "")) if word_str else 0
+
+        players_payload = {
+            pid: {
+                "name": p["name"],
+                "score": p["score"],
+                "answered": p["answered"],
+                "avatar": p.get("avatar"),
+                "live_input": p.get("live_input", ""),
+            }
+            for pid, p in self.players.items()
+        }
 
         state = {
-            "game_id": self.game_id,
+            "game_code": self.code,
             "phase": self.phase,
+            "previous_phase": self.previous_phase,
             "paused": self.paused,
+            "round_title": self.round_title,
+            "points_per_correct": self.points_per_correct,
             "num_rounds": self.num_rounds,
             "timer_seconds": self.timer_seconds,
             "current_round": self.current_round,
             "total_rounds": self.num_rounds,
-            "players": players_public,
-            "last_results": self.last_results,
-            "ranking": self.ranking,
+            "time_left": self.time_left,
+            "definition": def_str,
+            "first_letter": first_letter,
+            "letter_count": letter_count,
+            "players": players_payload,
+            "word_bank_count": len(self.word_bank),
+            "word_list": self.word_bank,
+            "ranking": self.compute_ranking(),
         }
 
-        if self.phase in ("playing", "countdown", "round_result") and self.current_round > 0 and self.current_round <= len(self.words):
-            word, definition = self.words[self.current_round - 1]
-            state["time_left"] = self.time_left()
-            state["definition"] = definition
-            state["letter_count"] = len(word)
-            state["first_letter"] = word[0].upper()
-            if for_teacher:
-                state["word"] = word
-            if self.phase == "round_result":
-                state["correct_word"] = word
+        if self.phase in ("round_ready", "countdown", "playing"):
+            state["word"] = word_str
+
+        if self.phase in ("round_result", "scores_view"):
+            state["correct_word"] = word_str
+            state["last_results"] = self.last_results
 
         if self.phase == "game_over":
-            state["ranking"] = self.ranking
-
-        if for_teacher:
-            active_source = self.words if self.words else self.word_bank
-            state["word_list"] = [
-                {"word": w, "definition": d} for w, d in active_source
-            ]
-            state["word_bank_count"] = len(self.word_bank)
+            state["ranking"] = self.ranking or self.compute_ranking()
 
         return state
 
 
-def generate_game_code():
-    return "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
-
-
-async def send_json(ws, obj):
+async def send_json(ws, payload: dict):
     try:
-        await ws.send(json.dumps(obj))
+        await ws.send(json.dumps(payload))
     except Exception:
         pass
 
 
-async def broadcast_game_state(game_code):
-    if game_code not in games:
-        return
-    game = games[game_code]
+async def broadcast_state(game: Game):
+    payload = {"type": "game_state", "game_state": game.get_state()}
+    dead = []
+    for pid, p in game.players.items():
+        ws = p.get("ws")
+        if ws:
+            try:
+                await ws.send(json.dumps(payload))
+            except Exception:
+                dead.append(pid)
+    for pid in dead:
+        game.players.pop(pid, None)
 
-    if game.teacher_websocket:
-        await send_json(game.teacher_websocket, {
-            "type": "game_state",
-            "game_state": game.get_state(for_teacher=True),
-        })
-
-    for pid, p in list(game.players.items()):
-        await send_json(p["websocket"], {
-            "type": "game_state",
-            "game_state": game.get_state(for_teacher=False),
-            "player_id": pid,
-        })
-
-
-async def pausable_sleep(game, seconds):
-    remaining = float(seconds)
-    last = time.time()
-    while remaining > 0:
-        if game._stop_requested:
-            return
-        await asyncio.sleep(0.1)
-        now = time.time()
-        if not game.paused:
-            remaining -= (now - last)
-        last = now
+    if game.host_ws:
+        try:
+            await game.host_ws.send(json.dumps(payload))
+        except Exception:
+            pass
 
 
-async def run_rounds(game_code):
-    game = games.get(game_code)
-    if not game:
-        return
+async def wait_while_paused(game: Game):
+    while game.paused:
+        await asyncio.sleep(0.2)
 
+
+async def run_match(game: Game):
     try:
-        game._stop_requested = False
-        game.prepare_words()
-        game.phase = "countdown"
-        await broadcast_game_state(game_code)
-        await pausable_sleep(game, 3)
+        pool = game.word_bank if game.word_bank else DEFAULT_WORDS
+        game.round_words = [random.choice(pool) for _ in range(game.num_rounds)]
 
-        for r in range(1, game.num_rounds + 1):
-            game = games.get(game_code)
-            if not game or game._stop_requested:
-                return
-
-            word, definition = game.words[r - 1]
-            game.current_round = r
-            game.phase = "playing"
-            game.round_ends_at = time.time() + game.timer_seconds
-            game.paused_remaining = float(game.timer_seconds)
+        r_idx = 1
+        while r_idx <= game.num_rounds:
+            game.current_round = r_idx
+            game.current_word_obj = game.round_words[r_idx - 1]
+            game.last_results = {}
+            game.phase = "round_ready"
+            game.time_left = game.timer_seconds
+            game.countdown_event.clear()
+            game.retry_event.clear()
+            game.advance_event.clear()
 
             for p in game.players.values():
                 p["answered"] = False
-                p["last_answer"] = None
+                p["answer"] = ""
                 p["live_input"] = ""
 
-            print(f"[{game_code}] Round {r}/{game.num_rounds}: {word}")
-            await broadcast_game_state(game_code)
+            await broadcast_state(game)
 
-            last_broadcast = 0
-            while True:
-                if game._stop_requested:
-                    return
-                await asyncio.sleep(0.25)
+            while not game.countdown_event.is_set() and not game.retry_event.is_set():
+                await asyncio.sleep(0.15)
 
-                if not game.paused:
-                    if time.time() >= game.round_ends_at:
-                        break
-                    if game.players and all(p.get("answered") for p in game.players.values()):
-                        break
+            if game.retry_event.is_set():
+                game.retry_event.clear()
+                continue
 
-                now = time.time()
-                if now - last_broadcast >= 1.0:
-                    await broadcast_game_state(game_code)
-                    last_broadcast = now
+            game.phase = "countdown"
+            game.time_left = 3
+            await broadcast_state(game)
 
-            if game._stop_requested:
-                return
+            cd = 3
+            while cd > 0 and not game.retry_event.is_set():
+                await wait_while_paused(game)
+                game.time_left = cd
+                await broadcast_state(game)
+                await asyncio.sleep(1)
+                cd -= 1
 
-            results = {}
+            if game.retry_event.is_set():
+                game.retry_event.clear()
+                continue
+
+            game.phase = "playing"
+            remaining = game.timer_seconds
+            game.time_left = remaining
+            await broadcast_state(game)
+
+            while remaining > 0 and not game.retry_event.is_set():
+                await wait_while_paused(game)
+                all_answered = (
+                    len(game.players) > 0
+                    and all(p.get("answered") for p in game.players.values())
+                )
+                if all_answered:
+                    break
+                await asyncio.sleep(1)
+                if game.paused or game.retry_event.is_set():
+                    continue
+                remaining -= 1
+                game.time_left = remaining
+                await broadcast_state(game)
+
+            if game.retry_event.is_set():
+                game.retry_event.clear()
+                continue
+
+            target_word = game.current_word_obj["word"].strip().lower()
+            pts_value = game.points_per_correct
+            round_res = {}
+
             for pid, p in game.players.items():
-                ans = (p.get("last_answer") or "").strip().lower()
-                correct = ans == word.lower()
-                if correct:
-                    p["score"] += 1
-                results[pid] = {
+                submitted = (p.get("answer") or p.get("live_input") or "").strip()
+                is_correct = bool(submitted) and (submitted.lower() == target_word)
+                awarded = pts_value if is_correct else 0
+                if is_correct:
+                    p["score"] += awarded
+                round_res[pid] = {
                     "name": p["name"],
-                    "answer": p.get("last_answer") or "(no answer)",
-                    "correct": correct,
-                    "score": p["score"],
                     "avatar": p.get("avatar"),
+                    "answer": submitted,
+                    "correct": is_correct,
+                    "points_awarded": awarded,
+                    "score": p["score"],
                 }
-            sync_student_txt()
-            game.last_results = results
+
+            game.last_results = round_res
             game.phase = "round_result"
-            print(f"[{game_code}] Round {r} results: {results}")
-            await broadcast_game_state(game_code)
-
+            game.time_left = 0
             game.advance_event.clear()
-            await game.advance_event.wait()
-            if game._stop_requested:
-                return
+            game.retry_event.clear()
+            await broadcast_state(game)
 
-        game = games.get(game_code)
-        if not game or game._stop_requested:
-            return
+            while not game.advance_event.is_set() and not game.retry_event.is_set():
+                await asyncio.sleep(0.15)
+                if game.phase not in ("round_result", "scores_view"):
+                    return
 
-        ranking = sorted(
-            [
-                {
-                    "name": p["name"],
-                    "score": p["score"],
-                    "avatar": p.get("avatar"),
-                }
-                for p in game.players.values()
-            ],
-            key=lambda x: -x["score"],
-        )
-        game.ranking = ranking
-        game.paused = False
+            if game.retry_event.is_set():
+                game.retry_event.clear()
+                game.rollback_current_round_points()
+                continue
+
+            r_idx += 1
+
         game.phase = "game_over"
-        print(f"[{game_code}] GAME OVER: {ranking}")
-        await broadcast_game_state(game_code)
+        game.ranking = game.compute_ranking()
+        await broadcast_state(game)
+
     except asyncio.CancelledError:
         pass
+    except Exception as exc:
+        print(f"[Match Error {game.code}] {exc}")
 
 
-async def handle_websocket(websocket):
-    client_id = id(websocket)
-    connections[client_id] = websocket
-
+async def handle_websocket(ws):
+    CLIENT_META[ws] = {"role": None, "game_code": None, "player_id": None}
     try:
-        async for message in websocket:
+        async for raw in ws:
             try:
-                data = json.loads(message)
+                data = json.loads(raw)
             except json.JSONDecodeError:
+                await send_json(ws, {"type": "error", "message": "Invalid JSON payload"})
                 continue
 
             action = data.get("action")
 
             if action == "create_game":
-                code = generate_game_code()
-                while code in games:
-                    code = generate_game_code()
-                games[code] = Game(code, teacher_websocket=websocket)
-                sync_student_txt()
-                await send_json(websocket, {
-                    "type": "game_created",
-                    "game_code": code,
-                    "game_state": games[code].get_state(for_teacher=True),
-                })
-                print(f"Game created: {code}")
-
-            elif action == "set_config":
-                code = normalize_code(data.get("game_code"))
-                if code in games:
-                    game = games[code]
-                    if game.teacher_websocket is websocket and game.phase == "lobby":
-                        game.set_config(data.get("rounds"), data.get("timer"))
-                        await broadcast_game_state(code)
-
-            elif action == "update_word_bank":
-                code = normalize_code(data.get("game_code"))
-                if code in games:
-                    game = games[code]
-                    if game.teacher_websocket is websocket:
-                        mode = data.get("mode", "replace")
-                        entries = data.get("words") or []
-                        total = game.update_word_bank(entries, mode=mode)
-                        await broadcast_game_state(code)
-                        await send_json(websocket, {
-                            "type": "word_bank_updated",
-                            "mode": mode,
-                            "total": total,
-                        })
-
-            elif action == "join_game":
-                code = normalize_code(data.get("game_code"))
-                name = (data.get("player_name") or "Anonymous").strip()[:20]
-                avatar_style = data.get("avatar_style", "avataaars")
-                avatar_seed = data.get("avatar_seed")
-
-                if code not in games:
-                    await send_json(websocket, {"type": "error", "message": "Game not found"})
-                    continue
-                game = games[code]
-                if game.phase != "lobby":
-                    await send_json(websocket, {"type": "error", "message": "Game already started"})
-                    continue
-                if any(p["name"].lower() == name.lower() for p in game.players.values()):
-                    await send_json(websocket, {"type": "error", "message": "Name already taken"})
-                    continue
-
-                pid = game.add_player(name, websocket, avatar_style, avatar_seed)
-                await send_json(websocket, {
-                    "type": "joined",
-                    "player_id": pid,
-                    "game_state": game.get_state(for_teacher=False),
-                })
-                await broadcast_game_state(code)
-
-            elif action == "start_game":
-                code = normalize_code(data.get("game_code"))
-                if code in games:
-                    game = games[code]
-                    if game.teacher_websocket is websocket and game.phase == "lobby":
-                        if not game.players:
-                            await send_json(websocket, {"type": "error", "message": "No players yet"})
-                            continue
-                        game.paused = False
-                        game.phase = "countdown"
-                        game._round_task = asyncio.create_task(run_rounds(code))
-
-            elif action == "pause_game":
-                code = normalize_code(data.get("game_code"))
-                if code in games and games[code].teacher_websocket is websocket:
-                    if games[code].pause():
-                        await broadcast_game_state(code)
-
-            elif action == "resume_game":
-                code = normalize_code(data.get("game_code"))
-                if code in games and games[code].teacher_websocket is websocket:
-                    if games[code].resume():
-                        await broadcast_game_state(code)
-
-            elif action == "toggle_pause":
-                code = normalize_code(data.get("game_code"))
-                if code in games and games[code].teacher_websocket is websocket:
-                    game = games[code]
-                    changed = game.resume() if game.paused else game.pause()
-                    if changed:
-                        await broadcast_game_state(code)
-
-            elif action == "next_round":
-                code = normalize_code(data.get("game_code"))
-                if code in games:
-                    game = games[code]
-                    if game.teacher_websocket is websocket and game.phase == "round_result":
-                        game.paused = False
-                        game.advance_event.set()
-
-            elif action == "remove_player":
-                code = normalize_code(data.get("game_code"))
-                pid = normalize_pid(data.get("player_id"))
-
-                if not code or code not in games:
-                    await send_json(websocket, {"type": "error", "message": "Game not found"})
-                    continue
-
-                game = games[code]
-                if game.teacher_websocket is not websocket:
-                    await send_json(websocket, {"type": "error", "message": "Only the teacher can remove players"})
-                    continue
-
-                ok, name, target_ws = game.remove_player(pid)
-                if ok:
-                    print(f"[{code}] Teacher removed player: {name} ({pid})")
-                    if target_ws:
-                        await send_json(target_ws, {
-                            "type": "kicked",
-                            "player_id": pid,
-                            "message": "You were removed from the session by the teacher.",
-                        })
-                    await broadcast_game_state(code)
-                else:
-                    await send_json(websocket, {"type": "error", "message": "Player not found"})
-
-            elif action == "live_typing":
-                code = normalize_code(data.get("game_code"))
-                pid = normalize_pid(data.get("player_id"))
-                current_input = data.get("current_input", "")
-                if code in games:
-                    game = games[code]
-                    if game.phase == "playing" and not game.paused and pid in game.players:
-                        game.players[pid]["live_input"] = current_input
-                        if game.teacher_websocket:
-                            await send_json(game.teacher_websocket, {
-                                "type": "student_typing_update",
-                                "player_id": pid,
-                                "player_name": game.players[pid]["name"],
-                                "current_input": current_input,
-                            })
-
-            elif action == "submit_answer":
-                code = normalize_code(data.get("game_code"))
-                pid = normalize_pid(data.get("player_id"))
-                answer = (data.get("answer") or "").strip()
-                if code in games:
-                    game = games[code]
-                    if game.paused:
-                        await send_json(websocket, {"type": "error", "message": "Game is paused"})
-                        continue
-                    if game.phase == "playing" and pid in game.players:
-                        if not game.players[pid].get("answered"):
-                            game.players[pid]["last_answer"] = answer
-                            game.players[pid]["live_input"] = answer
-                            game.players[pid]["answered"] = True
-                            await broadcast_game_state(code)
+                code = generate_code()
+                game = Game(code)
+                game.host_ws = ws
+                GAMES[code] = game
+                CLIENT_META[ws] = {"role": "host", "game_code": code, "player_id": None}
+                await send_json(
+                    ws,
+                    {
+                        "type": "game_created",
+                        "game_code": code,
+                        "game_state": game.get_state(),
+                    },
+                )
 
             elif action == "get_game_state":
-                code = normalize_code(data.get("game_code"))
-                if code in games:
-                    game = games[code]
-                    is_teacher = game.teacher_websocket is websocket
-                    await send_json(websocket, {
-                        "type": "game_state",
-                        "game_state": game.get_state(for_teacher=is_teacher),
-                    })
+                code = (data.get("game_code") or "").strip().upper()
+                game = GAMES.get(code)
+                if not game:
+                    await send_json(ws, {"type": "error", "message": "Game session not found"})
+                    continue
+                if CLIENT_META[ws]["role"] == "host":
+                    game.host_ws = ws
+                await send_json(ws, {"type": "game_state", "game_state": game.get_state()})
+
+            elif action == "set_config":
+                code = (data.get("game_code") or "").strip().upper()
+                game = GAMES.get(code)
+                if not game:
+                    await send_json(ws, {"type": "error", "message": "Game session not found"})
+                    continue
+                if game.phase != "lobby":
+                    await send_json(
+                        ws,
+                        {"type": "error", "message": "Config can only be changed in lobby"},
+                    )
+                    continue
+                game.apply_config(data)
+                await broadcast_state(game)
+
+            elif action == "start_game":
+                code = (data.get("game_code") or "").strip().upper()
+                game = GAMES.get(code)
+                if not game:
+                    await send_json(ws, {"type": "error", "message": "Game session not found"})
+                    continue
+                if not game.players:
+                    await send_json(
+                        ws,
+                        {"type": "error", "message": "At least one student must join first"},
+                    )
+                    continue
+                game.apply_config(data)
+                if game.loop_task and not game.loop_task.done():
+                    game.loop_task.cancel()
+                game.paused = False
+                game.countdown_event.clear()
+                game.advance_event.clear()
+                game.retry_event.clear()
+                game.loop_task = asyncio.create_task(run_match(game))
+
+            elif action == "start_countdown":
+                code = (data.get("game_code") or "").strip().upper()
+                game = GAMES.get(code)
+                if not game:
+                    continue
+                if game.phase == "round_ready":
+                    game.paused = False
+                    game.countdown_event.set()
+
+            elif action == "retry_round":
+                code = (data.get("game_code") or "").strip().upper()
+                game = GAMES.get(code)
+                if not game:
+                    continue
+                if game.phase in ("round_ready", "countdown", "playing", "round_result", "scores_view"):
+                    if game.phase in ("round_result", "scores_view"):
+                        game.rollback_current_round_points()
+                    game.paused = False
+                    game.retry_event.set()
+                    await broadcast_state(game)
+
+            elif action == "show_scores":
+                code = (data.get("game_code") or "").strip().upper()
+                game = GAMES.get(code)
+                if not game:
+                    continue
+                if game.phase in ("round_result", "game_over"):
+                    game.previous_phase = game.phase
+                    game.ranking = game.compute_ranking()
+                    game.phase = "scores_view"
+                    await broadcast_state(game)
+
+            elif action == "return_from_scores":
+                code = (data.get("game_code") or "").strip().upper()
+                game = GAMES.get(code)
+                if not game:
+                    continue
+                if game.phase == "scores_view":
+                    target = game.previous_phase if game.previous_phase in ("round_result", "game_over") else "round_result"
+                    if target == "game_over":
+                        game.ranking = game.compute_ranking()
+                    game.phase = target
+                    await broadcast_state(game)
+
+            elif action == "toggle_pause":
+                code = (data.get("game_code") or "").strip().upper()
+                game = GAMES.get(code)
+                if not game:
+                    continue
+                if game.phase in ("round_ready", "countdown", "playing", "round_result"):
+                    game.paused = not game.paused
+                    await broadcast_state(game)
+
+            elif action == "next_round":
+                code = (data.get("game_code") or "").strip().upper()
+                game = GAMES.get(code)
+                if not game:
+                    continue
+                if game.phase in ("round_result", "scores_view"):
+                    game.paused = False
+                    game.advance_event.set()
 
             elif action == "reset_game":
-                code = normalize_code(data.get("game_code"))
-                if code in games:
-                    game = games[code]
-                    if game.teacher_websocket is websocket:
-                        game._stop_requested = True
-                        if game._round_task and not game._round_task.done():
-                            game._round_task.cancel()
-                        game._round_task = None
-                        game.advance_event.set()
-                        game.phase = "lobby"
-                        game.paused = False
-                        game.paused_remaining = 0.0
-                        game.current_round = 0
-                        game.words = []
-                        game.last_results = {}
-                        game.ranking = []
-                        for p in game.players.values():
-                            p["score"] = 0
-                            p["answered"] = False
-                            p["last_answer"] = None
-                            p["live_input"] = ""
-                        sync_student_txt()
-                        await broadcast_game_state(code)
-                        print(f"[{code}] Stopped & reset to lobby")
+                code = (data.get("game_code") or "").strip().upper()
+                game = GAMES.get(code)
+                if not game:
+                    continue
+                game.reset_to_lobby()
+                await broadcast_state(game)
 
-    except websockets.exceptions.ConnectionClosed:
+            elif action == "remove_player":
+                code = (data.get("game_code") or "").strip().upper()
+                pid = data.get("player_id")
+                game = GAMES.get(code)
+                if not game or not pid:
+                    continue
+                removed = game.players.pop(pid, None)
+                if removed and removed.get("ws"):
+                    await send_json(
+                        removed["ws"],
+                        {
+                            "type": "kicked",
+                            "message": "You were removed from the session by the teacher.",
+                        },
+                    )
+                await broadcast_state(game)
+
+            elif action == "update_word_bank":
+                code = (data.get("game_code") or "").strip().upper()
+                game = GAMES.get(code)
+                if not game:
+                    await send_json(ws, {"type": "error", "message": "Game session not found"})
+                    continue
+                mode = data.get("mode", "replace")
+                words = data.get("words", [])
+                total = game.update_word_bank(words, mode=mode)
+                await send_json(
+                    ws,
+                    {
+                        "type": "word_bank_updated",
+                        "mode": mode,
+                        "total": total,
+                    },
+                )
+                await broadcast_state(game)
+
+            elif action == "join_game":
+                code = (data.get("game_code") or "").strip().upper()
+                name = (data.get("player_name") or "").strip()[:20]
+                game = GAMES.get(code)
+                if not game:
+                    await send_json(ws, {"type": "error", "message": "Room code not found"})
+                    continue
+                if not name:
+                    await send_json(ws, {"type": "error", "message": "Please enter your name"})
+                    continue
+
+                pid = "P-" + "".join(
+                    random.choices(string.ascii_uppercase + string.digits, k=5)
+                )
+                avatar_url = make_avatar_url(
+                    data.get("avatar_style"), data.get("avatar_seed") or name
+                )
+                game.players[pid] = {
+                    "name": name,
+                    "score": 0,
+                    "answered": False,
+                    "answer": "",
+                    "live_input": "",
+                    "avatar": avatar_url,
+                    "ws": ws,
+                }
+                CLIENT_META[ws] = {"role": "student", "game_code": code, "player_id": pid}
+                await send_json(
+                    ws,
+                    {
+                        "type": "joined",
+                        "player_id": pid,
+                        "game_state": game.get_state(),
+                    },
+                )
+                await broadcast_state(game)
+
+            elif action == "live_typing":
+                code = (data.get("game_code") or "").strip().upper()
+                pid = data.get("player_id")
+                game = GAMES.get(code)
+                if not game or game.paused or game.phase != "playing":
+                    continue
+                p = game.players.get(pid)
+                if not p or p.get("answered"):
+                    continue
+                current_input = str(data.get("current_input") or "")[:60]
+                p["live_input"] = current_input
+                if game.host_ws:
+                    await send_json(
+                        game.host_ws,
+                        {
+                            "type": "student_typing_update",
+                            "player_id": pid,
+                            "current_input": current_input,
+                        },
+                    )
+
+            elif action == "submit_answer":
+                code = (data.get("game_code") or "").strip().upper()
+                pid = data.get("player_id")
+                game = GAMES.get(code)
+                if not game or game.paused or game.phase != "playing":
+                    continue
+                p = game.players.get(pid)
+                if not p or p.get("answered"):
+                    continue
+                ans = str(data.get("answer") or "").strip()[:60]
+                p["answer"] = ans
+                p["live_input"] = ans
+                p["answered"] = True
+                await broadcast_state(game)
+
+    except websockets.ConnectionClosed:
         pass
-    except Exception as e:
-        print(f"Handler error: {e}")
     finally:
-        if client_id in connections:
-            del connections[client_id]
+        meta = CLIENT_META.pop(ws, None)
+        if meta and meta.get("role") == "student":
+            game = GAMES.get(meta.get("game_code") or "")
+            pid = meta.get("player_id")
+            if game and pid and pid in game.players:
+                game.players[pid]["ws"] = None
 
-        for code, game in list(games.items()):
-            if game.teacher_websocket is websocket:
-                game.teacher_websocket = None
-            for pid, p in list(game.players.items()):
-                if p["websocket"] is websocket:
-                    del game.players[pid]
-                    if pid in game.last_results:
-                        del game.last_results[pid]
-                    sync_student_txt()
-                    asyncio.create_task(broadcast_game_state(code))
+
+class ReusableHTTPServer(HTTPServer):
+    allow_reuse_address = True
 
 
 def run_http_server():
     os.chdir(BASE_DIR)
-    server = HTTPServer(("0.0.0.0", 8000), SimpleHTTPRequestHandler)
+    server = ReusableHTTPServer(("0.0.0.0", 8000), SimpleHTTPRequestHandler)
     print("HTTP Server  -> http://0.0.0.0:8000")
     server.serve_forever()
 
 
 async def main():
-    sync_student_txt()
     http_thread = threading.Thread(target=run_http_server, daemon=True)
     http_thread.start()
-
+    print("WS Server    -> ws://0.0.0.0:8001")
     async with websockets.serve(handle_websocket, "0.0.0.0", 8001):
-        print("WebSocket    -> ws://0.0.0.0:8001")
-        print("Teacher      -> http://localhost:8000/teacher.html")
-        print("Students     -> http://localhost:8000/student.html")
         await asyncio.Future()
 
 
